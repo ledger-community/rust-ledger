@@ -1,0 +1,138 @@
+name: ci
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Run lints / checks
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+        fetch-depth: 0
+
+    - name: Configure toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+        components: rustfmt, clippy, rust-src
+
+    - name: Install comms libraries
+      run: sudo apt update && sudo apt install -y libusb-1.0-0 libusb-1.0-0-dev libudev-dev libdbus-1-dev pkg-config
+
+    - name: Restore shared cache
+      uses: actions/cache/restore@v3
+      with:
+        key: core
+        path: |
+          ~/.cargo
+          ./target
+
+    - name: Check formatting
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --check
+
+    - name: Run clippy
+      uses: actions-rs/cargo@v1
+      with:
+        command: clippy
+        args: -- -D warnings
+
+  # Run tests
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+        fetch-depth: 0
+
+    - name: Configure toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+        components: rustfmt, clippy, rust-src
+
+    - name: Install comms libraries
+      run: sudo apt update && sudo apt install -y libusb-1.0-0 libusb-1.0-0-dev libudev-dev libdbus-1-dev pkg-config
+
+    - name: Restore shared cache
+      uses: actions/cache/restore@v3
+      with:
+        key: core
+        path: |
+          ~/.cargo
+          ./target
+
+    - name: Run tests
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+
+    - name: Update shared cache, only from `main`
+      if: ${{ github.ref == 'refs/heads/main' }}
+      uses: actions/cache/save@v3
+      with:
+        key: core-${{ github.run_id }}
+        path: |
+          ~/.cargo
+          ./target
+
+  # Build docs
+  docs:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pages: write
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+        fetch-depth: 0
+
+    - name: Configure toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+        components: rustfmt, clippy, rust-src
+
+    - name: Install comms libraries (required for build)
+      run: sudo apt update && sudo apt install -y libusb-1.0-0 libusb-1.0-0-dev libudev-dev libdbus-1-dev pkg-config
+    
+    - name: Restore shared cache
+      uses: actions/cache/restore@v3
+      with:
+        key: core
+        path: |
+          ~/.cargo
+          ./target
+
+    - name: Build docs
+      uses: actions-rs/cargo@v1
+      with:
+        command: doc
+        args: --no-deps --workspace
+    
+    - name: Deploy docs to GitHub Pages
+      uses: crazy-max/ghaction-github-pages@v3
+      if: github.ref_name == 'main'
+      with:
+        target_branch: gh-pages
+        build_dir: target/doc
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

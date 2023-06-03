@@ -1,0 +1,23 @@
+[package]
+name = "ledger-proto"
+description = "Ledger hardware wallet protocol / APDU definitions"
+repository = "https://github.com/ledger-community/rust-ledger.git"
+keywords = [ "ledger", "protocol", "apdu" ]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[features]
+# `std` feature implements `std::error::Error` for `ApduError` type
+std = [ "dep:thiserror", "alloc" ]
+# `alloc` feature gates `Vec` based types
+alloc = []
+
+default = [ "std" ]
+
+[dependencies]
+encdec = { version = "0.9.0", default_features = false }
+bitflags = { version = "2.1.0", default_features = false }
+displaydoc = { version = "0.2.3", default_features = false }
+
+thiserror = { version = "1.0.40", optional = true }

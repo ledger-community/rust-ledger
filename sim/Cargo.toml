@@ -1,0 +1,30 @@
+[package]
+name = "ledger-sim"
+description = "A Rust wrapper for the Ledger Speculos Simulator"
+repository = "https://github.com/ledger-community/rust-ledger.git"
+keywords = [ "ledger", "hardware", "wallet", "speculos", "simulator" ]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+bytes = "1.2.1"
+strum = { version = "0.24.1", features = [ "derive" ] }
+anyhow = "1.0.59"
+clap = { version = "4.3.1", features = [ "derive", "env" ] }
+tokio = { version = "1.20.1", features = [ "full" ] }
+lazy_static = "1.4.0"
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+bollard = "0.13.0"
+async-trait = "0.1.57"
+futures = "0.3.24"
+tar = "0.4.38"
+reqwest = { version = "0.11.13", features = [ "json", "rustls-tls" ], default_features = false }
+serde = "1.0.148"
+serde_json = "1.0.89"
+image = "0.24.5"
+
+[dev-dependencies]
+ledger-lib = "0.1.0"
+ledger-proto = "0.1.0"

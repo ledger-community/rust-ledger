@@ -42,7 +42,7 @@ pub trait Transport {
     /// Connection filters
     type Filters: Debug;
     /// Device information, used for listing and connecting
-    type Info: Debug;
+    type Info: Clone + Debug;
     /// Device handle for interacting with the device
     type Device: Exchange;
 

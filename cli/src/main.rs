@@ -10,7 +10,14 @@ use ledger_proto::{ApduHeader, GenericApdu};
 use tracing::{debug, error};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter, FmtSubscriber};
 
-use ledger_lib::{Device, Error, Filters, LedgerHandle, LedgerInfo, LedgerProvider, Transport};
+use ledger_lib::{Device, Error, Filters, Transport};
+
+#[cfg(feature="provider")]
+use ledger_lib::{LedgerProvider};
+
+#[cfg(not(feature="provider"))]
+use ledger_lib::transport::{GenericTransport};
+
 
 /// Ledger Hardware Wallet Command Line Interface
 #[derive(Clone, Debug, PartialEq, Parser)]
@@ -88,7 +95,7 @@ fn u8_parse_maybe_hex(s: &str) -> Result<u8, std::num::ParseIntError> {
     }
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     // Load command line arguments
     let args = Args::parse();
@@ -109,8 +116,11 @@ async fn main() -> anyhow::Result<()> {
 
     debug!("args: {:?}", args);
 
-    // Initialise provider
+    // Initialise transport
+    #[cfg(feature="provider")]
     let mut p = LedgerProvider::init().await;
+    #[cfg(not(feature="provider"))]
+    let mut p = GenericTransport::new().await?;
 
     // Fetch list of available devices
     let devices = p.list(args.filters).await?;
@@ -162,11 +172,11 @@ async fn main() -> anyhow::Result<()> {
 }
 
 /// Connect to a device with the provided index
-async fn connect(
-    p: &mut LedgerProvider,
-    devices: &[LedgerInfo],
+async fn connect<T: Transport>(
+    p: &mut T,
+    devices: &[T::Info],
     index: usize,
-) -> Result<LedgerHandle, Error> {
+) -> Result<T::Device, Error> {
     // Check we have at least one device
     if devices.is_empty() {
         return Err(Error::NoDevices);

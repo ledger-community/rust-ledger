@@ -43,11 +43,20 @@ pub enum Error {
     #[error("Request timeout")]
     Timeout,
 
+    #[error("Device or transport closed")]
+    Closed,
+
+    #[error("Empty response payload")]
+    EmptyResponse,
+
     #[error("Unexpected response payload")]
     UnexpectedResponse,
 
     #[error("Device in use")]
     DeviceInUse,
+
+    #[error("Already running application ({0})")]
+    ApplicationLoaded(String),
 }
 
 impl From<tokio::time::error::Elapsed> for Error {

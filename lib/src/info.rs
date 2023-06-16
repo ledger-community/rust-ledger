@@ -2,6 +2,8 @@
 
 use strum::{Display, EnumString};
 
+use crate::Filters;
+
 use super::transport;
 
 /// Ledger device information
@@ -17,6 +19,20 @@ pub struct LedgerInfo {
 impl std::fmt::Display for LedgerInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} ({})", self.model, self.conn)
+    }
+}
+
+impl LedgerInfo {
+    /// Fetch connection kind enumeration
+    pub fn kind(&self) -> ConnType {
+        match &self.conn {
+            #[cfg(feature = "transport_usb")]
+            ConnInfo::Usb(_) => ConnType::Usb,
+            #[cfg(feature = "transport_tcp")]
+            ConnInfo::Tcp(_) => ConnType::Tcp,
+            #[cfg(feature = "transport_ble")]
+            ConnInfo::Ble(_) => ConnType::Ble,
+        }
     }
 }
 
@@ -61,6 +77,25 @@ pub enum ConnInfo {
     Tcp(transport::TcpInfo),
     #[cfg(feature = "transport_ble")]
     Ble(transport::BleInfo),
+}
+
+/// Ledger connection types
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum ConnType {
+    Usb,
+    Tcp,
+    Ble,
+}
+
+impl From<ConnType> for Filters {
+    /// Convert a connection type to a discovery filter
+    fn from(value: ConnType) -> Self {
+        match value {
+            ConnType::Usb => Filters::Hid,
+            ConnType::Tcp => Filters::Tcp,
+            ConnType::Ble => Filters::Ble,
+        }
+    }
 }
 
 impl std::fmt::Display for ConnInfo {

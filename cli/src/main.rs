@@ -6,11 +6,13 @@ use std::str::FromStr;
 
 use clap::Parser;
 use hex::ToHex;
-use ledger_proto::{ApduHeader, GenericApdu, StatusCode};
 use tracing::{debug, error};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter, FmtSubscriber};
 
-use ledger_lib::{Device, Error, Filters, LedgerHandle, LedgerInfo, LedgerProvider, Transport};
+use ledger_lib::{
+    launch_app, Device, Error, Filters, LedgerHandle, LedgerInfo, LedgerProvider, Transport,
+};
+use ledger_proto::{ApduHeader, GenericApdu, StatusCode};
 
 /// Ledger Hardware Wallet Command Line Interface
 #[derive(Clone, Debug, PartialEq, Parser)]
@@ -69,7 +71,13 @@ pub enum Command {
     /// Exchange raw data with the device
     File {
         #[clap(help = "file to read APDU data from (header + data)")]
-        filename: Option<String>,
+        filename: String,
+    },
+    /// Run an application on the device
+    Run {
+        /// Application name
+        #[clap(long)]
+        app_name: String,
     },
 }
 
@@ -140,6 +148,34 @@ async fn main() -> anyhow::Result<()> {
 
             println!("device info: {:?}", i);
         }
+        Command::Run { app_name } => {
+            // Check we have at least one device
+            if devices.is_empty() {
+                return Err(anyhow::Error::from(Error::NoDevices));
+            }
+
+            // Check we have a device matching the index specified
+            if args.index > devices.len() {
+                return Err(anyhow::Error::from(Error::InvalidDeviceIndex(args.index)));
+            }
+
+            let info = devices[args.index].clone();
+
+            println!("launch app: {app_name}");
+
+            let mut d = launch_app(
+                &mut p,
+                info,
+                &app_name,
+                &Default::default(),
+                args.timeout.into(),
+            )
+            .await?;
+
+            let i = d.app_info(args.timeout.into()).await?;
+
+            println!("running app: {i:?}");
+        }
         Command::Apdu {
             cla,
             ins,
@@ -161,32 +197,30 @@ async fn main() -> anyhow::Result<()> {
 
             println!("Response: {}", resp.data.encode_hex::<String>());
         }
-        Command::File { filename } => match filename {
-            Some(path) => {
-                let data = std::fs::read_to_string(path)?;
-                let mut d = connect(&mut p, &devices, args.index).await?;
-                let mut buff = [0u8; 256];
+        Command::File { filename } => {
+            // Load APDU sequence file
+            let data = std::fs::read_to_string(filename)?;
+            let apdu_seq: Vec<GenericApdu> = serde_json::from_str(data.as_str())?;
 
-                let apdu_seq: Vec<GenericApdu> = serde_json::from_str(data.as_str()).unwrap();
+            // Connect to device
+            let mut d = connect(&mut p, &devices, args.index).await?;
+            let mut buff = [0u8; 256];
 
-                for apdu_input in apdu_seq {
-                    let resp = d
-                        .request::<GenericApdu>(apdu_input, &mut buff, args.timeout.into())
-                        .await;
+            // Execute APDU sequence
+            for apdu_input in apdu_seq {
+                let resp = d
+                    .request::<GenericApdu>(apdu_input, &mut buff, args.timeout.into())
+                    .await;
 
-                    match resp {
-                        Ok(apdu_output) => {
-                            println!("Response: {}", apdu_output.data.encode_hex::<String>())
-                        }
-                        Err(Error::Status(StatusCode::Ok)) => println!("App OK"),
-                        Err(e) => println!("Command failed: {e:?}"),
+                match resp {
+                    Ok(apdu_output) => {
+                        println!("Response: {}", apdu_output.data.encode_hex::<String>())
                     }
+                    Err(Error::Status(StatusCode::Ok)) => println!("App OK"),
+                    Err(e) => println!("Command failed: {e:?}"),
                 }
             }
-            None => {
-                error!("please provide an input file");
-            }
-        },
+        }
     }
     Ok(())
 }

@@ -40,7 +40,7 @@ use crate::{
 #[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 pub trait Transport {
     /// Connection filters
-    type Filters: Debug;
+    type Filters: Default + Debug;
     /// Device information, used for listing and connecting
     type Info: Debug;
     /// Device handle for interacting with the device
@@ -51,6 +51,26 @@ pub trait Transport {
 
     /// Connect to a device using info from a previous list operation
     async fn connect(&mut self, info: Self::Info) -> Result<Self::Device, Error>;
+}
+
+/// Blanket [Transport] implementation for references types
+#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
+impl<T: Transport + Send> Transport for &mut T
+where
+    <T as Transport>::Device: Send,
+    <T as Transport>::Filters: Send,
+    <T as Transport>::Info: Send,
+{
+    type Filters = <T as Transport>::Filters;
+    type Info = <T as Transport>::Info;
+    type Device = <T as Transport>::Device;
+
+    async fn list(&mut self, filters: Self::Filters) -> Result<Vec<LedgerInfo>, Error> {
+        <T as Transport>::list(self, filters).await
+    }
+    async fn connect(&mut self, info: Self::Info) -> Result<Self::Device, Error> {
+        <T as Transport>::connect(self, info).await
+    }
 }
 
 /// [GenericTransport] for device communication, abstracts underlying transport types

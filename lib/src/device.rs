@@ -3,7 +3,7 @@
 use std::time::Duration;
 
 use encdec::{EncDec, Encode};
-use tracing::error;
+use tracing::{debug, error};
 
 use ledger_proto::{
     apdus::{AppInfoReq, AppInfoResp, DeviceInfoReq, DeviceInfoResp},
@@ -70,6 +70,8 @@ impl<T: Exchange + Send> Device for T {
         buff: &'b mut [u8],
         timeout: Duration,
     ) -> Result<RESP, Error> {
+        debug!("TX: {req:?}");
+
         // Encode request
         let n = encode_request(req, buff)?;
 
@@ -99,9 +101,10 @@ impl<T: Exchange + Send> Device for T {
             }
         }
 
-        // Decode response
-        // TODO: is it useful to also return the status bytes?
-        let (resp, _) = RESP::decode(&buff[..n])?;
+        // Decode response data - status bytes
+        let (resp, _) = RESP::decode(&buff[..n - 2])?;
+
+        debug!("RX: {resp:?}");
 
         // Return decode response
         Ok(resp)

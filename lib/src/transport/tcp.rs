@@ -6,7 +6,7 @@ use std::{
 
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, Interest},
-    net::TcpStream,
+    net::{TcpListener, TcpStream},
 };
 use tracing::{debug, error};
 
@@ -67,15 +67,20 @@ impl Transport for TcpTransport {
     async fn list(&mut self, _filters: Self::Filters) -> Result<Vec<LedgerInfo>, Error> {
         let mut devices = vec![];
 
-        // Check whether speculos socket is open on the default port
+        // Check whether a speculos socket is open on the default port
         let addr = SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), 1237);
 
-        if let Ok(_s) = TcpStream::connect(&addr).await {
-            // TODO: fill in model if we can request this?
-            devices.push(LedgerInfo {
-                conn: TcpInfo { addr }.into(),
-                model: Model::Unknown(0),
-            });
+        // We can't -connect- to speculos as this does not handle multiple TCP connections
+        // so instead we attempt to bind to the socket we expect speculos to occupy.
+        match TcpListener::bind(addr.clone()).await {
+            Ok(_) => (),
+            // A failure indicates this is in use and we should report a device available for connection
+            Err(_) => {
+                devices.push(LedgerInfo {
+                    conn: TcpInfo { addr }.into(),
+                    model: Model::Unknown(0),
+                });
+            }
         }
 
         Ok(devices)

@@ -115,10 +115,9 @@ impl Transport for GenericTransport {
 
         #[cfg(feature = "transport_ble")]
         if filters == Filters::Any || filters == Filters::Ble {
-            // BLE discovery is allowed to fail if not explictly selected
+            // BLE discovery is allowed to fail if not exclusively selected
             // as dbus does not always provide the relevant service (eg. under WSL)
             // TODO: work out whether we can detect this to separate no BLE from discovery failure
-
             match self.ble.list(()).await {
                 Ok(mut d) => devices.append(&mut d),
                 Err(e) if filters == Filters::Any => {

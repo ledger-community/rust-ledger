@@ -68,11 +68,11 @@ impl Transport for TcpTransport {
         let mut devices = vec![];
 
         // Check whether a speculos socket is open on the default port
-        let addr = SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), 1237);
+        let addr = SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), 1237);
 
         // We can't -connect- to speculos as this does not handle multiple TCP connections
         // so instead we attempt to bind to the socket we expect speculos to occupy.
-        match TcpListener::bind(addr.clone()).await {
+        match TcpListener::bind(addr).await {
             Ok(_) => (),
             // A failure indicates this is in use and we should report a device available for connection
             Err(_) => {

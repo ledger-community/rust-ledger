@@ -2,11 +2,13 @@
 //!
 //! See [ledger_lib] for APIs used in this application.
 
+use std::fs::File;
+use std::io::{self, BufRead};
 use std::str::FromStr;
 
 use clap::Parser;
 use hex::ToHex;
-use ledger_proto::{ApduHeader, GenericApdu};
+use ledger_proto::{ApduHeader, DecodeOwned, GenericApdu};
 use tracing::{debug, error};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter, FmtSubscriber};
 
@@ -65,6 +67,11 @@ pub enum Command {
         /// Hex encoded APDU data
         #[clap(default_value = "")]
         data: ApduData,
+    },
+    /// Exchange raw data with the device
+    File {
+        #[clap(help = "file to read APDU data from (header + data)")]
+        filename: Option<String>,
     },
 }
 
@@ -156,8 +163,64 @@ async fn main() -> anyhow::Result<()> {
 
             println!("Response: {}", resp.data.encode_hex::<String>());
         }
-    }
+        Command::File { filename } => {
+            match filename {
+                Some(path) => {
+                    let f = File::open(path)?;
+                    let lines = io::BufReader::new(f).lines();
 
+                    let mut d = connect(&mut p, &devices, args.index).await?;
+                    let mut buff = [0u8; 256];
+
+                    for line in lines.into_iter().flatten() {
+                        let mut p: Vec<&str> = line.split_whitespace().collect();
+                        p.reverse();
+
+                        if let Some(prefix) = p.pop() {
+                            if prefix == "=>" {
+                                // Build APDU header
+                                let mut header: Vec<&str> = p.drain(1..).collect();
+                                header.reverse();
+                                let mut header_bytes: Vec<u8> = Default::default();
+                                for e in header {
+                                    header_bytes.push(u8::from_str_radix(e, 16).unwrap())
+                                }
+                                let apdu_header: ApduHeader =
+                                    match ApduHeader::decode_owned(header_bytes.as_slice()) {
+                                        Ok(t) => t.0,
+                                        Err(_) => Default::default(),
+                                    };
+
+                                // Get APDU data
+                                let data_bytes = match p.pop() {
+                                    Some(b) => match hex::decode(b) {
+                                        Ok(v) => v,
+                                        Err(_e) => Default::default(),
+                                    },
+                                    None => Default::default(),
+                                };
+
+                                //Build APDU
+                                let req = GenericApdu {
+                                    header: apdu_header,
+                                    data: data_bytes,
+                                };
+
+                                let resp = d
+                                    .request::<GenericApdu>(req, &mut buff, args.timeout.into())
+                                    .await?;
+
+                                println!("Response: {}", resp.data.encode_hex::<String>());
+                            }
+                        }
+                    }
+                }
+                None => {
+                    error!("please provide an input file");
+                }
+            }
+        }
+    }
     Ok(())
 }
 

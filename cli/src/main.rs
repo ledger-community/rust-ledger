@@ -173,13 +173,11 @@ async fn main() -> anyhow::Result<()> {
                     let mut buff = [0u8; 256];
 
                     for line in lines.into_iter().flatten() {
-
                         if let Some(s) = line.strip_prefix("=> ") {
-
                             let mut p: Vec<&str> = s.split_whitespace().collect();
                             // Build APDU header
                             let mut header: Vec<&str> = p.drain(0..=3).collect();
-            
+
                             let mut header_bytes: Vec<u8> = Default::default();
                             for e in header {
                                 header_bytes.push(u8::from_str_radix(e, 16).unwrap())

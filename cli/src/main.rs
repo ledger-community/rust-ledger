@@ -163,59 +163,30 @@ async fn main() -> anyhow::Result<()> {
 
             println!("Response: {}", resp.data.encode_hex::<String>());
         }
-        Command::File { filename } => {
-            match filename {
-                Some(path) => {
-                    let f = File::open(path)?;
-                    let lines = io::BufReader::new(f).lines();
+        Command::File { filename } => match filename {
+            Some(path) => {
+                let f = File::open(path)?;
+                let lines = io::BufReader::new(f).lines();
 
-                    let mut d = connect(&mut p, &devices, args.index).await?;
-                    let mut buff = [0u8; 256];
+                let mut d = connect(&mut p, &devices, args.index).await?;
+                let mut buff = [0u8; 256];
 
-                    for line in lines.into_iter().flatten() {
-                        if let Some(s) = line.strip_prefix("=> ") {
-                            let mut p: Vec<&str> = s.split_whitespace().collect();
-                            // Build APDU header
-                            let mut header: Vec<&str> = p.drain(0..=3).collect();
+                for line in lines.into_iter().flatten() {
+                    if let Some(s) = line.strip_prefix("=> ") {
+                        let req = build_apdu(s);
 
-                            let mut header_bytes: Vec<u8> = Default::default();
-                            for e in header {
-                                header_bytes.push(u8::from_str_radix(e, 16).unwrap())
-                            }
-                            let apdu_header: ApduHeader =
-                                match ApduHeader::decode_owned(header_bytes.as_slice()) {
-                                    Ok(t) => t.0,
-                                    Err(_) => Default::default(),
-                                };
+                        let resp = d
+                            .request::<GenericApdu>(req, &mut buff, args.timeout.into())
+                            .await?;
 
-                            // Get APDU data
-                            let data_bytes = match p.pop() {
-                                Some(b) => match hex::decode(b) {
-                                    Ok(v) => v,
-                                    Err(_e) => Default::default(),
-                                },
-                                None => Default::default(),
-                            };
-
-                            //Build APDU
-                            let req = GenericApdu {
-                                header: apdu_header,
-                                data: data_bytes,
-                            };
-
-                            let resp = d
-                                .request::<GenericApdu>(req, &mut buff, args.timeout.into())
-                                .await?;
-
-                            println!("Response: {}", resp.data.encode_hex::<String>());
-                        }
+                        println!("Response: {}", resp.data.encode_hex::<String>());
                     }
                 }
-                None => {
-                    error!("please provide an input file");
-                }
             }
-        }
+            None => {
+                error!("please provide an input file");
+            }
+        },
     }
     Ok(())
 }
@@ -246,5 +217,36 @@ async fn connect(
             error!("Failed to connect to device {:?}: {:?}", d, e);
             Err(e)
         }
+    }
+}
+
+/// Build APDU from string
+fn build_apdu(s: &str) -> GenericApdu {
+    let mut p: Vec<&str> = s.split_whitespace().collect();
+    // Build APDU header
+    let header: Vec<&str> = p.drain(0..=3).collect();
+
+    let mut header_bytes: Vec<u8> = Default::default();
+    for e in header {
+        header_bytes.push(u8::from_str_radix(e, 16).unwrap())
+    }
+    let apdu_header: ApduHeader = match ApduHeader::decode_owned(header_bytes.as_slice()) {
+        Ok(t) => t.0,
+        Err(_) => Default::default(),
+    };
+
+    // Get APDU data
+    let data_bytes = match p.pop() {
+        Some(b) => match hex::decode(b) {
+            Ok(v) => v,
+            Err(_e) => Default::default(),
+        },
+        None => Default::default(),
+    };
+
+    //Build APDU
+    GenericApdu {
+        header: apdu_header,
+        data: data_bytes,
     }
 }

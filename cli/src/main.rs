@@ -173,45 +173,43 @@ async fn main() -> anyhow::Result<()> {
                     let mut buff = [0u8; 256];
 
                     for line in lines.into_iter().flatten() {
-                        let mut p: Vec<&str> = line.split_whitespace().collect();
-                        p.reverse();
 
-                        if let Some(prefix) = p.pop() {
-                            if prefix == "=>" {
-                                // Build APDU header
-                                let mut header: Vec<&str> = p.drain(1..).collect();
-                                header.reverse();
-                                let mut header_bytes: Vec<u8> = Default::default();
-                                for e in header {
-                                    header_bytes.push(u8::from_str_radix(e, 16).unwrap())
-                                }
-                                let apdu_header: ApduHeader =
-                                    match ApduHeader::decode_owned(header_bytes.as_slice()) {
-                                        Ok(t) => t.0,
-                                        Err(_) => Default::default(),
-                                    };
+                        if let Some(s) = line.strip_prefix("=> ") {
 
-                                // Get APDU data
-                                let data_bytes = match p.pop() {
-                                    Some(b) => match hex::decode(b) {
-                                        Ok(v) => v,
-                                        Err(_e) => Default::default(),
-                                    },
-                                    None => Default::default(),
-                                };
-
-                                //Build APDU
-                                let req = GenericApdu {
-                                    header: apdu_header,
-                                    data: data_bytes,
-                                };
-
-                                let resp = d
-                                    .request::<GenericApdu>(req, &mut buff, args.timeout.into())
-                                    .await?;
-
-                                println!("Response: {}", resp.data.encode_hex::<String>());
+                            let mut p: Vec<&str> = s.split_whitespace().collect();
+                            // Build APDU header
+                            let mut header: Vec<&str> = p.drain(0..=3).collect();
+            
+                            let mut header_bytes: Vec<u8> = Default::default();
+                            for e in header {
+                                header_bytes.push(u8::from_str_radix(e, 16).unwrap())
                             }
+                            let apdu_header: ApduHeader =
+                                match ApduHeader::decode_owned(header_bytes.as_slice()) {
+                                    Ok(t) => t.0,
+                                    Err(_) => Default::default(),
+                                };
+
+                            // Get APDU data
+                            let data_bytes = match p.pop() {
+                                Some(b) => match hex::decode(b) {
+                                    Ok(v) => v,
+                                    Err(_e) => Default::default(),
+                                },
+                                None => Default::default(),
+                            };
+
+                            //Build APDU
+                            let req = GenericApdu {
+                                header: apdu_header,
+                                data: data_bytes,
+                            };
+
+                            let resp = d
+                                .request::<GenericApdu>(req, &mut buff, args.timeout.into())
+                                .await?;
+
+                            println!("Response: {}", resp.data.encode_hex::<String>());
                         }
                     }
                 }

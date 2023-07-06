@@ -2,13 +2,11 @@
 //!
 //! See [ledger_lib] for APIs used in this application.
 
-use std::fs::File;
-use std::io::{self, BufRead};
 use std::str::FromStr;
 
 use clap::Parser;
 use hex::ToHex;
-use ledger_proto::{ApduHeader, DecodeOwned, GenericApdu};
+use ledger_proto::{ApduHeader, GenericApdu};
 use tracing::{debug, error};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter, FmtSubscriber};
 
@@ -165,21 +163,23 @@ async fn main() -> anyhow::Result<()> {
         }
         Command::File { filename } => match filename {
             Some(path) => {
-                let f = File::open(path)?;
-                let lines = io::BufReader::new(f).lines();
-
+                let data = std::fs::read_to_string(path)?;
                 let mut d = connect(&mut p, &devices, args.index).await?;
                 let mut buff = [0u8; 256];
 
-                for line in lines.into_iter().flatten() {
-                    if let Some(s) = line.strip_prefix("=> ") {
-                        let req = build_apdu(s);
+                let apdu_seq: Vec<GenericApdu> = serde_json::from_str(data.as_str()).unwrap();
 
-                        let resp = d
-                            .request::<GenericApdu>(req, &mut buff, args.timeout.into())
-                            .await?;
+                for apdu_input in apdu_seq {
+                    let resp = d
+                        .request::<GenericApdu>(apdu_input, &mut buff, args.timeout.into())
+                        .await;
 
-                        println!("Response: {}", resp.data.encode_hex::<String>());
+                    match resp {
+                        Ok(apdu_output) => {
+                            println!("Response: {}", apdu_output.data.encode_hex::<String>())
+                        }
+                        Err(Error::Response(0x90, 0x00)) => println!("App OK"),
+                        Err(e) => println!("Command failed: {e:?}"),
                     }
                 }
             }
@@ -217,36 +217,5 @@ async fn connect(
             error!("Failed to connect to device {:?}: {:?}", d, e);
             Err(e)
         }
-    }
-}
-
-/// Build APDU from string
-fn build_apdu(s: &str) -> GenericApdu {
-    let mut p: Vec<&str> = s.split_whitespace().collect();
-    // Build APDU header
-    let header: Vec<&str> = p.drain(0..=3).collect();
-
-    let mut header_bytes: Vec<u8> = Default::default();
-    for e in header {
-        header_bytes.push(u8::from_str_radix(e, 16).unwrap())
-    }
-    let apdu_header: ApduHeader = match ApduHeader::decode_owned(header_bytes.as_slice()) {
-        Ok(t) => t.0,
-        Err(_) => Default::default(),
-    };
-
-    // Get APDU data
-    let data_bytes = match p.pop() {
-        Some(b) => match hex::decode(b) {
-            Ok(v) => v,
-            Err(_e) => Default::default(),
-        },
-        None => Default::default(),
-    };
-
-    //Build APDU
-    GenericApdu {
-        header: apdu_header,
-        data: data_bytes,
     }
 }

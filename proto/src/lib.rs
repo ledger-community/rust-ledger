@@ -112,10 +112,12 @@ pub use encdec::{Decode, DecodeOwned, EncDec, Encode};
 mod error;
 pub use error::ApduError;
 
+pub use serde::Deserialize;
+
 pub mod apdus;
 
 /// APDU command header
-#[derive(Copy, Clone, PartialEq, Debug, Default, Encode, DecodeOwned)]
+#[derive(Copy, Clone, PartialEq, Debug, Default, Encode, DecodeOwned, Deserialize)]
 #[encdec(error = "ApduError")]
 pub struct ApduHeader {
     /// Class ID
@@ -191,12 +193,13 @@ pub trait ApduBase<'a>: EncDec<'a, ApduError> {}
 impl<'a, T: EncDec<'a, ApduError>> ApduBase<'a> for T {}
 
 /// Generic APDU object (enabled with `alloc` feature), prefer use of strict APDU types where possible
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Deserialize)]
 #[cfg(feature = "alloc")]
 pub struct GenericApdu {
     /// Request APDU Header (uses [Default] for incoming / response APDUs)
     pub header: ApduHeader,
     /// APDU data
+    #[serde(with = "hex::serde")]
     pub data: Vec<u8>,
 }
 

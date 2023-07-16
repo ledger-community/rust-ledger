@@ -66,6 +66,11 @@ pub enum Command {
         #[clap(default_value = "")]
         data: ApduData,
     },
+    /// Exchange raw data with the device
+    File {
+        #[clap(help = "file to read APDU data from (header + data)")]
+        filename: Option<String>,
+    },
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -156,8 +161,33 @@ async fn main() -> anyhow::Result<()> {
 
             println!("Response: {}", resp.data.encode_hex::<String>());
         }
-    }
+        Command::File { filename } => match filename {
+            Some(path) => {
+                let data = std::fs::read_to_string(path)?;
+                let mut d = connect(&mut p, &devices, args.index).await?;
+                let mut buff = [0u8; 256];
 
+                let apdu_seq: Vec<GenericApdu> = serde_json::from_str(data.as_str()).unwrap();
+
+                for apdu_input in apdu_seq {
+                    let resp = d
+                        .request::<GenericApdu>(apdu_input, &mut buff, args.timeout.into())
+                        .await;
+
+                    match resp {
+                        Ok(apdu_output) => {
+                            println!("Response: {}", apdu_output.data.encode_hex::<String>())
+                        }
+                        Err(Error::Response(0x90, 0x00)) => println!("App OK"),
+                        Err(e) => println!("Command failed: {e:?}"),
+                    }
+                }
+            }
+            None => {
+                error!("please provide an input file");
+            }
+        },
+    }
     Ok(())
 }
 

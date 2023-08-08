@@ -12,14 +12,17 @@ license = "Apache-2.0"
 std = [ "dep:thiserror", "alloc" ]
 # `alloc` feature gates `Vec` based types
 alloc = []
+# `serde` feature enables object serialisation and deserialisation
+serde = [ "dep:serde", "dep:hex", "bitflags/serde" ]
 
-default = [ "std" ]
+default = [ "std", "serde" ]
 
 [dependencies]
 encdec = { version = "0.9.0", default_features = false }
 bitflags = { version = "2.1.0", default_features = false }
 displaydoc = { version = "0.2.3", default_features = false }
-serde = { version = "1.0.166", features = ["derive"] }
-hex = { version = "0.4.3", features = ["serde"] }
+num_enum = { version = "0.6.1", default_features = false }
 
+serde = { version = "1.0.166", features = ["derive"], optional = true }
+hex = { version = "0.4.3", features = ["serde"], optional = true }
 thiserror = { version = "1.0.40", optional = true }

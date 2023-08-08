@@ -101,7 +101,6 @@ impl<'a> Decode<'a> for DeviceInfoResp<'a> {
     /// Decode an device info APDU from the provided buffer
     fn decode(buff: &'a [u8]) -> Result<(Self, usize), ApduError> {
         let mut index = 0;
-        let buff = buff;
 
         // Fetch target id
         let mut target_id = [0u8; 4];

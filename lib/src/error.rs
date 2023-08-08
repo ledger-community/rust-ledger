@@ -1,6 +1,6 @@
 //! Ledger interface [Error] type and conversions
 
-use ledger_proto::ApduError;
+use ledger_proto::{ApduError, StatusCode};
 
 /// Ledger interface error type
 #[derive(Debug, thiserror::Error)]
@@ -32,8 +32,13 @@ pub enum Error {
     #[error("Apdu encode/decode error: {0}")]
     Apdu(#[from] ApduError),
 
-    #[error("Response error 0x{0:02x}{1:02x}")]
-    Response(u8, u8),
+    /// Recognised status codes (see [StatusCode])
+    #[error("Status: {0}")]
+    Status(StatusCode),
+
+    /// Unrecognised status codes
+    #[error("Status: 0x{0:02x}{1:02x} (unrecognised)")]
+    UnknownStatus(u8, u8),
 
     #[error("Request timeout")]
     Timeout,

@@ -7,7 +7,7 @@ use tracing::error;
 
 use ledger_proto::{
     apdus::{AppInfoReq, AppInfoResp, DeviceInfoReq, DeviceInfoResp},
-    ApduError, ApduReq,
+    ApduError, ApduReq, StatusCode,
 };
 
 use crate::{
@@ -91,7 +91,12 @@ impl<T: Exchange + Send> Device for T {
 
         // Handle error responses (2 bytes long, only a status)
         if n == 2 {
-            return Err(Error::Response(resp_bytes[0], resp_bytes[1]));
+            // Return status code if matched, unknown otherwise
+            let v = u16::from_be_bytes([resp_bytes[0], resp_bytes[1]]);
+            match StatusCode::try_from(v) {
+                Ok(c) => return Err(Error::Status(c)),
+                Err(_) => return Err(Error::UnknownStatus(resp_bytes[0], resp_bytes[1])),
+            }
         }
 
         // Decode response

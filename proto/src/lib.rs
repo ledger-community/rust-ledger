@@ -107,17 +107,24 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(feature = "alloc")]
+extern crate alloc;
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+
 pub use encdec::{Decode, DecodeOwned, EncDec, Encode};
 
 mod error;
 pub use error::ApduError;
 
-pub use serde::Deserialize;
-
 pub mod apdus;
 
+mod status;
+pub use status::StatusCode;
+
 /// APDU command header
-#[derive(Copy, Clone, PartialEq, Debug, Default, Encode, DecodeOwned, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug, Default, Encode, DecodeOwned)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[encdec(error = "ApduError")]
 pub struct ApduHeader {
     /// Class ID
@@ -193,13 +200,14 @@ pub trait ApduBase<'a>: EncDec<'a, ApduError> {}
 impl<'a, T: EncDec<'a, ApduError>> ApduBase<'a> for T {}
 
 /// Generic APDU object (enabled with `alloc` feature), prefer use of strict APDU types where possible
-#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg(feature = "alloc")]
 pub struct GenericApdu {
     /// Request APDU Header (uses [Default] for incoming / response APDUs)
     pub header: ApduHeader,
     /// APDU data
-    #[serde(with = "hex::serde")]
+    #[cfg_attr(feature = "serde", serde(with = "hex::serde"))]
     pub data: Vec<u8>,
 }
 

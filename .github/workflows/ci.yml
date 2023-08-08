@@ -48,6 +48,43 @@ jobs:
         command: clippy
         args: -- -D warnings
 
+  # Check no_std build of protocol objects
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Configure toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          target: thumbv7em-none-eabihf
+
+      - name: Restore shared cache
+        uses: actions/cache/restore@v3
+        with:
+          key: core
+          path: |
+            ~/.cargo
+            ./target
+
+      - name: Check no_std build with alloc
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: -p ledger-proto --target=thumbv7em-none-eabihf --no-default-features --features=alloc
+
+      - name: Check no_std build without alloc
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: -p ledger-proto --target=thumbv7em-none-eabihf --no-default-features
+
   # Run tests
   test:
     runs-on: ubuntu-latest

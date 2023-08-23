@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use clap::Parser;
 use hex::ToHex;
-use ledger_proto::{ApduHeader, GenericApdu};
+use ledger_proto::{ApduHeader, GenericApdu, StatusCode};
 use tracing::{debug, error};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter, FmtSubscriber};
 
@@ -178,7 +178,7 @@ async fn main() -> anyhow::Result<()> {
                         Ok(apdu_output) => {
                             println!("Response: {}", apdu_output.data.encode_hex::<String>())
                         }
-                        Err(Error::Response(0x90, 0x00)) => println!("App OK"),
+                        Err(Error::Status(StatusCode::Ok)) => println!("App OK"),
                         Err(e) => println!("Command failed: {e:?}"),
                     }
                 }

@@ -102,7 +102,6 @@ impl<'a> Decode<'a> for AppInfoResp<'a> {
 
     fn decode(buff: &'a [u8]) -> Result<(Self::Output, usize), Self::Error> {
         let mut index = 0;
-        let buff = buff;
 
         // Check app version format
         if buff[index] != APP_VERSION_FMT {

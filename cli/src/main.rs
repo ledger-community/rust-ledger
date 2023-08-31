@@ -199,83 +199,16 @@ async fn main() -> anyhow::Result<()> {
         },
         Command::ListApp => {
             let mut d = connect(&mut p, &devices, args.index).await?;
-            let mut app_list: Vec<AppInfo> = vec![];
-
-            let mut flag: bool = true;
-            let mut start: bool = true;
-
-            while flag {
-                let req = GenericApdu {
-                    header: ApduHeader {
-                        cla: 0xe0,
-                        ins: {
-                            match start {
-                                true => 0xde,
-                                false => 0xdf,
-                            }
-                        },
-                        p1: 0x00,
-                        p2: 0x00,
-                    },
-                    data: vec![],
-                };
-
-                start = false;
-
-                let mut buff = [0u8; 256];
-                let resp = d
-                    .request::<GenericApdu>(req, &mut buff, args.timeout.into())
-                    .await;
-
-                match resp {
-                    Ok(apdu_output) => {
-                        //println!("Response: {}", apdu_output.data.encode_hex::<String>());
-
-                        let mut offset: usize = 1;
-                        while offset < apdu_output.data.len() - 2 {
-                            offset += 1;
-                            let mut app_info: AppInfo = Default::default();
-                            let bytes =
-                                <[u8; 4]>::try_from(&apdu_output.data[offset..offset + 4]).unwrap();
-                            app_info.flags = u32::from_be_bytes(bytes);
-                            offset += 4;
-                            app_info
-                                .hash_code_data
-                                .copy_from_slice(&apdu_output.data[offset..offset + 32]);
-                            offset += 32;
-                            app_info
-                                .hash
-                                .copy_from_slice(&apdu_output.data[offset..offset + 32]);
-                            offset += 32;
-                            let name_len: usize = apdu_output.data[offset] as usize;
-                            offset += 1;
-                            app_info.name = String::from_utf8(Vec::from(
-                                &apdu_output.data[offset..offset + name_len],
-                            ))
-                            .unwrap();
-                            offset += name_len;
-
-                            app_list.push(app_info);
-                        }
-                    }
-                    Err(Error::Status(StatusCode::Ok)) => {
-                        println!("flags, name, hash, hash_code:");
-                        for info in &app_list {
-                            println!(
-                                "{:08x}, {}, {}, {}",
-                                info.flags,
-                                info.name,
-                                info.hash.encode_hex::<String>(),
-                                info.hash_code_data.encode_hex::<String>()
-                            );
-                        }
-                        flag = false;
-                    }
-                    Err(e) => {
-                        println!("Command failed: {e:?}");
-                        flag = false;
-                    }
-                }
+            let list = d.app_list(args.timeout.into()).await?;
+            println!("flags, name, hash, hash_code:");
+            for info in &list {
+                println!(
+                    "{:08x}, {}, {}, {}",
+                    info.flags,
+                    info.name,
+                    info.hash.encode_hex::<String>(),
+                    info.hash_code_data.encode_hex::<String>()
+                );
             }
         }
     }

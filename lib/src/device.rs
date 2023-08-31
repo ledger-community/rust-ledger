@@ -6,8 +6,11 @@ use encdec::{EncDec, Encode};
 use tracing::error;
 
 use ledger_proto::{
-    apdus::{AppInfoReq, AppInfoResp, DeviceInfoReq, DeviceInfoResp},
-    ApduError, ApduReq, StatusCode,
+    apdus::{
+        decode_app_data, AppData, AppInfoReq, AppInfoResp, AppListNextReq, AppListStartReq,
+        DeviceInfoReq, DeviceInfoResp,
+    },
+    ApduError, ApduReq, GenericApdu, StatusCode,
 };
 
 use crate::{
@@ -57,6 +60,48 @@ pub trait Device {
             mcu_version: r.mcu_version.to_string(),
             flags: r.flags.to_vec(),
         })
+    }
+
+    /// Fetch list of installed apps
+    async fn app_list(&mut self, timeout: Duration) -> Result<Vec<AppData>, Error> {
+        let mut buff = [0u8; APDU_BUFF_LEN];
+
+        let mut app_data_list: Vec<AppData> = Default::default();
+
+        let mut start: bool = true;
+
+        loop {
+            let r = match start {
+                true => {
+                    self.request::<GenericApdu>(AppListStartReq {}, &mut buff[..], timeout)
+                        .await
+                }
+                false => {
+                    self.request::<GenericApdu>(AppListNextReq {}, &mut buff[..], timeout)
+                        .await
+                }
+            };
+
+            start = false;
+
+            match r {
+                Ok(apdu_output) => {
+                    let mut offset: usize = 1;
+                    while offset < apdu_output.data.len() - 2 {
+                        let data = decode_app_data(&apdu_output, &mut offset).unwrap();
+                        app_data_list.push(data);
+                    }
+                }
+                Err(Error::Status(StatusCode::Ok)) => {
+                    break;
+                }
+                Err(e) => {
+                    println!("Command failed: {e:?}");
+                    return Err(e);
+                }
+            }
+        }
+        Ok(app_data_list)
     }
 }
 

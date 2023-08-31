@@ -11,3 +11,6 @@ pub use run_app::RunAppReq;
 
 mod exit_app;
 pub use exit_app::ExitAppReq;
+
+mod app_list;
+pub use app_list::{decode_app_data, AppData, AppListNextReq, AppListStartReq};

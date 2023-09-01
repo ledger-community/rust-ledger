@@ -50,9 +50,7 @@ pub fn decode_app_data(data: &[u8], offset: &mut usize) -> Result<AppData, ApduE
         .hash_code_data
         .copy_from_slice(&data[*offset..*offset + 32]);
     *offset += 32;
-    app_info
-        .hash
-        .copy_from_slice(&data[*offset..*offset + 32]);
+    app_info.hash.copy_from_slice(&data[*offset..*offset + 32]);
     *offset += 32;
     let name_len: usize = data[*offset] as usize;
     *offset += 1;

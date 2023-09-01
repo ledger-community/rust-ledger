@@ -71,10 +71,20 @@ pub enum Command {
         #[clap(help = "file to read APDU data from (header + data)")]
         filename: Option<String>,
     },
+    /// List applications installed on device
+    ListApp,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ApduData(Vec<u8>);
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppInfo {
+    flags: u32,
+    hash_code_data: [u8; 32],
+    hash: [u8; 32],
+    name: String,
+}
 
 impl FromStr for ApduData {
     type Err = hex::FromHexError;
@@ -187,6 +197,20 @@ async fn main() -> anyhow::Result<()> {
                 error!("please provide an input file");
             }
         },
+        Command::ListApp => {
+            let mut d = connect(&mut p, &devices, args.index).await?;
+            let list = d.app_list(args.timeout.into()).await?;
+            println!("flags, name, hash, hash_code:");
+            for info in &list {
+                println!(
+                    "{:08x}, {}, {}, {}",
+                    info.flags,
+                    info.name,
+                    info.hash.encode_hex::<String>(),
+                    info.hash_code_data.encode_hex::<String>()
+                );
+            }
+        }
     }
     Ok(())
 }

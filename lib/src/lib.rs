@@ -80,11 +80,12 @@ pub use device::Device;
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Device discovery filter
-#[derive(Copy, Clone, Debug, PartialEq, strum::Display)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, strum::Display)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 #[non_exhaustive]
 pub enum Filters {
     /// List all devices available using supported transport
+    #[default]
     Any,
     /// List only HID devices
     Hid,
@@ -92,12 +93,6 @@ pub enum Filters {
     Tcp,
     /// List only BLE device
     Ble,
-}
-
-impl Default for Filters {
-    fn default() -> Self {
-        Self::Any
-    }
 }
 
 /// [Exchange] trait provides a low-level interface for byte-wise exchange of APDU commands with a ledger devices

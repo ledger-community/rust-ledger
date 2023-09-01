@@ -230,7 +230,7 @@ async fn main() -> anyhow::Result<()> {
                     Err(e) => println!("Command failed: {e:?}"),
                 }
             }
-        },
+        }
         Command::ListApp => {
             let mut d = connect(&mut p, &devices, args.index).await?;
             let list = d.app_list(args.timeout.into()).await?;

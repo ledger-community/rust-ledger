@@ -1,5 +1,8 @@
 use encdec::{Decode, Encode};
 
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use crate::{ApduError, ApduStatic, GenericApdu};
 
 /// App List Start APDU command

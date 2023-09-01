@@ -1,9 +1,10 @@
 use encdec::{Decode, Encode};
 
+extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::{ApduError, ApduStatic, GenericApdu};
+use crate::{ApduError, ApduStatic};
 
 /// App List Start APDU command
 #[derive(Copy, Clone, PartialEq, Debug, Default, Encode, Decode)]
@@ -39,23 +40,23 @@ pub struct AppData {
     pub name: String,
 }
 
-pub fn decode_app_data(apdu: &GenericApdu, offset: &mut usize) -> Result<AppData, ApduError> {
+pub fn decode_app_data(data: &[u8], offset: &mut usize) -> Result<AppData, ApduError> {
     *offset += 1;
     let mut app_info: AppData = Default::default();
-    let bytes = <[u8; 4]>::try_from(&apdu.data[*offset..*offset + 4]).unwrap();
+    let bytes = <[u8; 4]>::try_from(&data[*offset..*offset + 4]).unwrap();
     app_info.flags = u32::from_be_bytes(bytes);
     *offset += 4;
     app_info
         .hash_code_data
-        .copy_from_slice(&apdu.data[*offset..*offset + 32]);
+        .copy_from_slice(&data[*offset..*offset + 32]);
     *offset += 32;
     app_info
         .hash
-        .copy_from_slice(&apdu.data[*offset..*offset + 32]);
+        .copy_from_slice(&data[*offset..*offset + 32]);
     *offset += 32;
-    let name_len: usize = apdu.data[*offset] as usize;
+    let name_len: usize = data[*offset] as usize;
     *offset += 1;
-    app_info.name = String::from_utf8(Vec::from(&apdu.data[*offset..*offset + name_len])).unwrap();
+    app_info.name = String::from_utf8(Vec::from(&data[*offset..*offset + name_len])).unwrap();
     *offset += name_len;
 
     Ok(app_info)

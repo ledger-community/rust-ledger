@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["ledger_cli","ledger_lib","ledger_proto","ledger_sim"];

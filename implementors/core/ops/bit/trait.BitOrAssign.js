@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"ledger_proto":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/ops/bit/trait.BitOrAssign.html\" title=\"trait core::ops::bit::BitOrAssign\">BitOrAssign</a>&lt;<a class=\"struct\" href=\"ledger_proto/apdus/struct.AppFlags.html\" title=\"struct ledger_proto::apdus::AppFlags\">AppFlags</a>&gt; for <a class=\"struct\" href=\"ledger_proto/apdus/struct.AppFlags.html\" title=\"struct ledger_proto::apdus::AppFlags\">AppFlags</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

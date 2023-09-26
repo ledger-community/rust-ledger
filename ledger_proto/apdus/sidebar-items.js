@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["AppFlags","AppInfoReq","AppInfoResp","DeviceInfoReq","DeviceInfoResp","ExitAppReq","RunAppReq"]};

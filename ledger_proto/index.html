@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Ledger Hardware Wallet APDU traits and shared types."><title>ledger_proto - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="ledger_proto" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.0-nightly (0288f2e19 2023-09-25)" data-channel="nightly" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="logo-container" href="../ledger_proto/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a></nav><nav class="sidebar"><a class="logo-container" href="../ledger_proto/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2 class="location"><a href="#">Crate ledger_proto</a></h2><div class="sidebar-elems"><ul class="block"><li class="version">Version 0.1.0</li><li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#modules">Modules</a></li><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#traits">Traits</a></li><li><a href="#derives">Derive Macros</a></li></ul></section></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">ledger_proto</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/ledger_proto/lib.rs.html#1-295">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Ledger Hardware Wallet APDU traits and shared types.</p>
+<p>This provides abstractions for encoding and decoding APDUs for to
+support interaction with Ledger devices.</p>
+<p>APDUs must implement <a href="trait.ApduBase.html" title="trait ledger_proto::ApduBase">ApduBase</a> as well as <a href="trait.Encode.html" title="trait ledger_proto::Encode">encdec::Encode</a> and <a href="trait.Decode.html" title="trait ledger_proto::Decode">encdec::Decode</a>
+(or <a href="trait.DecodeOwned.html" title="trait ledger_proto::DecodeOwned">encdec::DecodeOwned</a>) for binary serialisation, with commands providing
+header information via <a href="trait.ApduReq.html" title="trait ledger_proto::ApduReq">ApduReq</a>.
+<a href="trait.Encode.html" title="trait ledger_proto::Encode">encdec::Encode</a> and <a href="trait.Decode.html" title="trait ledger_proto::Decode">encdec::Decode</a> can be automatically derived using <code>encdec</code> macros,
+or manually implemented over existing objects / encodings.</p>
+<p>An <a href="trait.ApduStatic.html" title="trait ledger_proto::ApduStatic">ApduStatic</a> helper is provided to automatically implement <a href="trait.ApduReq.html" title="trait ledger_proto::ApduReq">ApduReq</a> for APDU requests
+with static headers and a common <a href="enum.ApduError.html" title="enum ledger_proto::ApduError">ApduError</a> type is provided to unify serialisation and
+deserialisation errors across APDU objects.</p>
+<h3 id="examples"><a href="#examples">Examples</a></h3>
+<p>Command APDU (no body) using <a href="trait.ApduStatic.html" title="trait ledger_proto::ApduStatic">ApduStatic</a>:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>ledger_proto::{ApduStatic, ApduError, Encode, DecodeOwned};
+
+<span class="doccomment">/// Application information request APDU
+</span><span class="attr">#[derive(Clone, Debug, PartialEq, Encode, DecodeOwned)]
+#[encdec(error = <span class="string">&quot;ApduError&quot;</span>)]
+</span><span class="kw">pub struct </span>AppInfoReq {}
+
+<span class="doccomment">/// Set CLA and INS values for [AppInfoReq]
+</span><span class="kw">impl </span>ApduStatic <span class="kw">for </span>AppInfoReq {
+    <span class="doccomment">/// Application Info GET APDU is class `0xb0`
+    </span><span class="kw">const </span>CLA: u8 = <span class="number">0xb0</span>;
+    <span class="doccomment">/// Application Info GET APDU is instruction `0x00`
+    </span><span class="kw">const </span>INS: u8 = <span class="number">0x01</span>;
+}</code></pre></div>
+<p>Manual response APDU implementation</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>ledger_proto::{ApduStatic, ApduError, Encode, Decode};
+
+<span class="doccomment">/// Example response APDU
+</span><span class="attr">#[derive(Clone, Debug, PartialEq)]
+</span><span class="kw">pub struct </span>StringResp&lt;<span class="lifetime">&#39;a</span>&gt; {
+    <span class="kw">pub </span>value: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str,
+}
+
+<span class="doccomment">/// [Encode] implementation for [StringResp]
+</span><span class="kw">impl </span>&lt;<span class="lifetime">&#39;a</span>&gt; Encode <span class="kw">for </span>StringResp&lt;<span class="lifetime">&#39;a</span>&gt; {
+  <span class="kw">type </span>Error = ApduError;
+
+  <span class="doccomment">/// Fetch encoded length
+  </span><span class="kw">fn </span>encode_len(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, <span class="self">Self</span>::Error&gt; {
+      <span class="prelude-val">Ok</span>(<span class="number">1 </span>+ <span class="self">self</span>.value.as_bytes().len())
+  }
+
+  <span class="doccomment">/// Encode to bytes
+  </span><span class="kw">fn </span>encode(<span class="kw-2">&amp;</span><span class="self">self</span>, buff: <span class="kw-2">&amp;mut </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;usize, <span class="self">Self</span>::Error&gt; {
+    <span class="kw">let </span>b = <span class="self">self</span>.value.as_bytes();
+
+    <span class="comment">// Check buffer length is valid
+    </span><span class="kw">if </span>buff.len() &lt; <span class="self">self</span>.encode_len()<span class="question-mark">?
+        </span>|| b.len() &gt; u8::MAX <span class="kw">as </span>usize {
+      <span class="kw">return </span><span class="prelude-val">Err</span>(ApduError::InvalidLength);
+    }
+
+    <span class="comment">// Write value length
+    </span>buff[<span class="number">0</span>] = b.len() <span class="kw">as </span>u8;
+
+    <span class="comment">// Write value
+    </span>buff[<span class="number">1</span>..][..b.len()]
+        .copy_from_slice(b);
+
+    <span class="prelude-val">Ok</span>(<span class="number">1 </span>+ b.len())
+  }
+}
+
+<span class="kw">impl </span>&lt;<span class="lifetime">&#39;a</span>&gt; Decode&lt;<span class="lifetime">&#39;a</span>&gt; <span class="kw">for </span>StringResp&lt;<span class="lifetime">&#39;a</span>&gt; {
+   <span class="kw">type </span>Output = <span class="self">Self</span>;
+   <span class="kw">type </span>Error = ApduError;
+
+    <span class="kw">fn </span>decode(buff: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>::Output, usize), <span class="self">Self</span>::Error&gt; {
+        <span class="comment">// Check buffer length
+        </span><span class="kw">if </span>buff.len() &lt; <span class="number">1 </span>{
+            <span class="kw">return </span><span class="prelude-val">Err</span>(ApduError::InvalidLength);
+        }
+        <span class="kw">let </span>n = buff[<span class="number">0</span>]<span class="kw">as </span>usize;
+        <span class="kw">if </span>n + <span class="number">1 </span>&gt; buff.len() {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(ApduError::InvalidLength);
+        }
+
+        <span class="comment">// Parse string value
+        </span><span class="kw">let </span>s = <span class="kw">match </span>core::str::from_utf8(<span class="kw-2">&amp;</span>buff[<span class="number">1</span>..][..n]) {
+            <span class="prelude-val">Ok</span>(v) =&gt; v,
+            <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(ApduError::InvalidUtf8),
+        };
+
+        <span class="comment">// Return object and parsed length
+        </span><span class="prelude-val">Ok</span>((<span class="self">Self</span>{ value: s}, n + <span class="number">1</span>))
+   }
+}</code></pre></div>
+<p>For more examples, see the shared APDUs provided in the <a href="apdus/index.html" title="mod ledger_proto::apdus">apdus</a> module.</p>
+</div></details><h2 id="modules" class="small-section-header"><a href="#modules">Modules</a></h2><ul class="item-table"><li><div class="item-name"><a class="mod" href="apdus/index.html" title="mod ledger_proto::apdus">apdus</a></div><div class="desc docblock-short">Ledger common APDU definitions</div></li></ul><h2 id="structs" class="small-section-header"><a href="#structs">Structs</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.ApduHeader.html" title="struct ledger_proto::ApduHeader">ApduHeader</a></div><div class="desc docblock-short">APDU command header</div></li><li><div class="item-name"><a class="struct" href="struct.GenericApdu.html" title="struct ledger_proto::GenericApdu">GenericApdu</a></div><div class="desc docblock-short">Generic APDU object (enabled with <code>alloc</code> feature), prefer use of strict APDU types where possible</div></li></ul><h2 id="enums" class="small-section-header"><a href="#enums">Enums</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.ApduError.html" title="enum ledger_proto::ApduError">ApduError</a></div><div class="desc docblock-short">APDU error type</div></li><li><div class="item-name"><a class="enum" href="enum.StatusCode.html" title="enum ledger_proto::StatusCode">StatusCode</a></div><div class="desc docblock-short">Device status codes (two bytes, trailing response data)</div></li></ul><h2 id="traits" class="small-section-header"><a href="#traits">Traits</a></h2><ul class="item-table"><li><div class="item-name"><a class="trait" href="trait.ApduBase.html" title="trait ledger_proto::ApduBase">ApduBase</a></div><div class="desc docblock-short">Generic APDU base trait, auto-implemented where <code>T: EncDec&lt;'a, ApduError&gt;</code></div></li><li><div class="item-name"><a class="trait" href="trait.ApduReq.html" title="trait ledger_proto::ApduReq">ApduReq</a></div><div class="desc docblock-short">Generic APDU request trait</div></li><li><div class="item-name"><a class="trait" href="trait.ApduStatic.html" title="trait ledger_proto::ApduStatic">ApduStatic</a></div><div class="desc docblock-short">Helper trait for defining static APDU commands, automatically
+implements <a href="trait.ApduReq.html" title="trait ledger_proto::ApduReq">ApduReq</a>.</div></li><li><div class="item-name"><a class="trait" href="trait.Decode.html" title="trait ledger_proto::Decode">Decode</a></div><div class="desc docblock-short">Decode trait implemented for binary decodable objects</div></li><li><div class="item-name"><a class="trait" href="trait.DecodeOwned.html" title="trait ledger_proto::DecodeOwned">DecodeOwned</a></div><div class="desc docblock-short">Decode trait implemented for owned types</div></li><li><div class="item-name"><a class="trait" href="trait.EncDec.html" title="trait ledger_proto::EncDec">EncDec</a></div><div class="desc docblock-short">Composite trait requiring an object is reversibly encodable and decodable
+into borrowed types, useful for simplifying type bounds / generics.</div></li><li><div class="item-name"><a class="trait" href="trait.Encode.html" title="trait ledger_proto::Encode">Encode</a></div><div class="desc docblock-short">Encode trait implemented for binary encodable objects</div></li></ul><h2 id="derives" class="small-section-header"><a href="#derives">Derive Macros</a></h2><ul class="item-table"><li><div class="item-name"><a class="derive" href="derive.Decode.html" title="derive ledger_proto::Decode">Decode</a></div><div class="desc docblock-short"><code>#[derive(Decode)]</code> support.</div></li><li><div class="item-name"><a class="derive" href="derive.DecodeOwned.html" title="derive ledger_proto::DecodeOwned">DecodeOwned</a></div><div class="desc docblock-short"><code>#[derive(DecodeOwned)]</code> support.</div></li><li><div class="item-name"><a class="derive" href="derive.Encode.html" title="derive ledger_proto::Encode">Encode</a></div><div class="desc docblock-short"><code>#[derive(Encode)]</code> support.</div></li></ul></section></div></main></body></html>

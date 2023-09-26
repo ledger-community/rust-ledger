@@ -221,7 +221,10 @@ impl UsbDevice {
         };
 
         // Check read length is valid for following operations
-        if n < 7 {
+        if n == 0 {
+            error!("Empty response");
+            return Err(Error::EmptyResponse);
+        } else if n < 7 {
             error!("Unexpected read length {n}");
             return Err(Error::UnexpectedResponse);
         }

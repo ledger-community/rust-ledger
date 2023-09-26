@@ -1,3 +1,5 @@
+//! Application information request and response APDUs
+
 use encdec::{Decode, Encode};
 
 use crate::{ApduError, ApduStatic};
@@ -33,13 +35,19 @@ bitflags::bitflags! {
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     pub struct AppFlags: u8 {
         /// Recovery mode
-        const RECOVERY = 0x01;
+        const RECOVERY = 1 << 0;
         /// Signed application
-        const SIGNED = 0x02;
+        const SIGNED = 1 << 1;
         /// User onboarded
-        const ONBOARDED = 0x04;
+        const ONBOARDED = 1 << 2;
+        /// ??
+        const TRUST_ISSUER = 1 << 3;
+        /// ??
+        const TRUST_CUSTOM_CA = 1 << 4;
+        /// HSM initialised
+        const HSM_INITIALISED = 1 << 5;
         /// PIN validated
-        const PIN_VALIDATED = 0xF0;
+        const PIN_VALIDATED = 1 << 7;
     }
 }
 
@@ -121,10 +129,15 @@ impl<'a> Decode<'a> for AppInfoResp<'a> {
             .map_err(|_| ApduError::InvalidUtf8)?;
         index += 1 + version_len;
 
-        // Fetch flags
-        let flags_len = buff[index];
-        let flags = AppFlags::from_bits_truncate(buff[index + 1]);
-        index += 1 + flags_len as usize;
+        // Fetch flags (if available)
+        let flags = if buff.len() > index {
+            let flags_len = buff[index];
+            let flags = AppFlags::from_bits_truncate(buff[index + 1]);
+            index += 1 + flags_len as usize;
+            flags
+        } else {
+            AppFlags::empty()
+        };
 
         Ok((
             Self {

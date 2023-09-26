@@ -324,7 +324,7 @@ impl BleDevice {
         let v = match notifications.next().await {
             Some(v) => v.value,
             None => {
-                return Err(Error::Unknown);
+                return Err(Error::Closed);
             }
         };
 
@@ -333,14 +333,17 @@ impl BleDevice {
         // Check response length is reasonable
         if v.len() < 5 {
             error!("response too short");
-            return Err(Error::Unknown);
+            return Err(Error::UnexpectedResponse);
         } else if v[0] != 0x05 {
             error!("unexpected response type: {:?}", v[0]);
-            return Err(Error::Unknown);
+            return Err(Error::UnexpectedResponse);
         }
 
         // Read out full response length
         let len = v[4] as usize;
+        if len == 0 {
+            return Err(Error::EmptyResponse);
+        }
 
         trace!("Expecting response length: {}", len);
 
@@ -357,7 +360,7 @@ impl BleDevice {
                 None => {
                     error!("Failed to fetch next chunk from peripheral");
                     self.p.unsubscribe(&self.c_read).await?;
-                    return Err(Error::Unknown);
+                    return Err(Error::Closed);
                 }
             };
 

@@ -1,3 +1,5 @@
+//! Device information request and response APDUs
+
 use encdec::{Decode, Encode};
 
 use crate::{ApduError, ApduStatic};

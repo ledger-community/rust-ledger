@@ -14,7 +14,10 @@
 
 use std::{fmt::Debug, time::Duration};
 
-use tracing::{debug, warn};
+#[cfg(feature = "transport_ble")]
+use tracing::warn;
+
+use tracing::debug;
 
 #[cfg(feature = "transport_usb")]
 mod usb;
@@ -178,16 +181,22 @@ impl GenericDevice {
     /// Fetch connection info for a device
     pub fn info(&self) -> ConnInfo {
         match self {
+            #[cfg(feature = "transport_usb")]
             GenericDevice::Usb(d) => d.info.clone().into(),
+            #[cfg(feature = "transport_ble")]
             GenericDevice::Ble(d) => d.info.clone().into(),
+            #[cfg(feature = "transport_tcp")]
             GenericDevice::Tcp(d) => d.info.clone().into(),
         }
     }
 
     pub(crate) async fn is_connected(&self) -> Result<bool, Error> {
         match self {
+            #[cfg(feature = "transport_usb")]
             GenericDevice::Usb(d) => d.is_connected().await,
+            #[cfg(feature = "transport_ble")]
             GenericDevice::Ble(d) => d.is_connected().await,
+            #[cfg(feature = "transport_tcp")]
             GenericDevice::Tcp(d) => d.is_connected().await,
         }
     }
@@ -200,7 +209,9 @@ impl Exchange for GenericDevice {
         match self {
             #[cfg(feature = "transport_usb")]
             Self::Usb(d) => d.exchange(command, timeout).await,
+            #[cfg(feature = "transport_ble")]
             Self::Ble(d) => d.exchange(command, timeout).await,
+            #[cfg(feature = "transport_tcp")]
             Self::Tcp(d) => d.exchange(command, timeout).await,
         }
     }

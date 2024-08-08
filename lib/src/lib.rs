@@ -50,7 +50,7 @@
 //! ```
 
 #![cfg_attr(feature = "unstable_async_trait", feature(async_fn_in_trait))]
-#![feature(negative_impls)]
+#![cfg_attr(feature = "unstable_async_trait", feature(negative_impls))]
 
 use std::time::Duration;
 

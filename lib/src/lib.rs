@@ -125,7 +125,7 @@ impl<T: Exchange + Send> Exchange for &mut T {
 /// contexts, and the lack of reported serial numbers by ledger devices,
 /// this is not incredibly reliable. Use at your own risk.
 ///
-pub async fn launch_app<T: Transport<Info = LedgerInfo, Filters = Filters>>(
+pub async fn launch_app<T>(
     mut t: T,
     info: <T as Transport>::Info,
     app_name: &str,
@@ -133,7 +133,7 @@ pub async fn launch_app<T: Transport<Info = LedgerInfo, Filters = Filters>>(
     timeout: Duration,
 ) -> Result<<T as Transport>::Device, Error>
 where
-    T: Send,
+    T: Transport<Info = LedgerInfo, Filters = Filters> + Send,
     <T as Transport>::Device: Send,
 {
     let mut buff = [0u8; 256];

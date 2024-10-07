@@ -1,0 +1,9 @@
+(function() {
+    var implementors = Object.fromEntries([["ledger_proto",[["impl&lt;'a&gt; <a class=\"trait\" href=\"ledger_proto/trait.Decode.html\" title=\"trait ledger_proto::Decode\">Decode</a>&lt;'a&gt; for <a class=\"struct\" href=\"ledger_proto/apdus/struct.AppInfoResp.html\" title=\"struct ledger_proto::apdus::AppInfoResp\">AppInfoResp</a>&lt;'a&gt;"],["impl&lt;'a&gt; <a class=\"trait\" href=\"ledger_proto/trait.Decode.html\" title=\"trait ledger_proto::Decode\">Decode</a>&lt;'a&gt; for <a class=\"struct\" href=\"ledger_proto/apdus/struct.DeviceInfoResp.html\" title=\"struct ledger_proto::apdus::DeviceInfoResp\">DeviceInfoResp</a>&lt;'a&gt;"],["impl&lt;'a&gt; <a class=\"trait\" href=\"ledger_proto/trait.Decode.html\" title=\"trait ledger_proto::Decode\">Decode</a>&lt;'a&gt; for <a class=\"struct\" href=\"ledger_proto/apdus/struct.RunAppReq.html\" title=\"struct ledger_proto::apdus::RunAppReq\">RunAppReq</a>&lt;'a&gt;"],["impl&lt;'dec&gt; <a class=\"trait\" href=\"ledger_proto/trait.Decode.html\" title=\"trait ledger_proto::Decode\">Decode</a>&lt;'dec&gt; for <a class=\"struct\" href=\"ledger_proto/apdus/struct.AppInfoReq.html\" title=\"struct ledger_proto::apdus::AppInfoReq\">AppInfoReq</a>"],["impl&lt;'dec&gt; <a class=\"trait\" href=\"ledger_proto/trait.Decode.html\" title=\"trait ledger_proto::Decode\">Decode</a>&lt;'dec&gt; for <a class=\"struct\" href=\"ledger_proto/apdus/struct.DeviceInfoReq.html\" title=\"struct ledger_proto::apdus::DeviceInfoReq\">DeviceInfoReq</a>"]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":57,"fragment_lengths":[1452]}

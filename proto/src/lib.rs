@@ -213,7 +213,7 @@ pub struct GenericApdu {
 
 /// [ApduReq] implementation for [GenericApdu], exposes internal header
 #[cfg(feature = "alloc")]
-impl<'a> ApduReq<'a> for GenericApdu {
+impl ApduReq<'_> for GenericApdu {
     fn header(&self) -> ApduHeader {
         self.header
     }

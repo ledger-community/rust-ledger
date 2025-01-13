@@ -64,7 +64,7 @@ impl<'a> AppInfoResp<'a> {
 
 const APP_VERSION_FMT: u8 = 1;
 
-impl<'a> Encode for AppInfoResp<'a> {
+impl Encode for AppInfoResp<'_> {
     type Error = ApduError;
 
     fn encode_len(&self) -> Result<usize, Self::Error> {

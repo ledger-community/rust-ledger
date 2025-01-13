@@ -13,7 +13,7 @@ pub struct RunAppReq<'a> {
 }
 
 /// Set CLA and INS values for [RunAppReq]
-impl<'a> ApduStatic for RunAppReq<'a> {
+impl ApduStatic for RunAppReq<'_> {
     const CLA: u8 = 0xe0;
     const INS: u8 = 0xd8;
 }

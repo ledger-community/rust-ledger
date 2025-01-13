@@ -50,7 +50,7 @@ impl<'a> DeviceInfoResp<'a> {
     }
 }
 
-impl<'a> Encode for DeviceInfoResp<'a> {
+impl Encode for DeviceInfoResp<'_> {
     type Error = ApduError;
 
     /// Encode an device info APDU into the provided buffer

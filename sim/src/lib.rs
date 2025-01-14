@@ -55,7 +55,7 @@ use std::collections::HashMap;
 
 use clap::Parser;
 
-use strum::{Display, EnumString, EnumVariantNames};
+use strum::{Display, EnumString, VariantNames};
 
 mod drivers;
 pub use drivers::*;
@@ -64,7 +64,7 @@ mod handle;
 pub use handle::*;
 
 /// Device model
-#[derive(Copy, Clone, PartialEq, Debug, EnumVariantNames, Display, EnumString)]
+#[derive(Copy, Clone, PartialEq, Debug, VariantNames, Display, EnumString)]
 #[strum(serialize_all = "lowercase")]
 pub enum Model {
     /// Nano S
@@ -88,7 +88,7 @@ impl Model {
 }
 
 /// Simulator display mode
-#[derive(Copy, Clone, PartialEq, Debug, EnumVariantNames, Display, EnumString, clap::ValueEnum)]
+#[derive(Copy, Clone, PartialEq, Debug, VariantNames, Display, EnumString, clap::ValueEnum)]
 #[strum(serialize_all = "lowercase")]
 pub enum Display {
     /// Headless mode

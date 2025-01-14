@@ -6,7 +6,7 @@
 use std::{io::Cursor, net::SocketAddr};
 
 use async_trait::async_trait;
-use image::{io::Reader as ImageReader, DynamicImage};
+use image::{DynamicImage, ImageReader};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use strum::Display;

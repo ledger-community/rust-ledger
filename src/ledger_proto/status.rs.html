@@ -1,0 +1,171 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `proto/src/status.rs`."><title>status.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-46132b98.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="ledger_proto" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0-nightly (8361aef0d 2025-01-14)" data-channel="nightly" data-search-js="search-75f5ac3e.js" data-settings-js="settings-0f613d39.js" ><script src="../../static.files/storage-59e33391.js"></script><script defer src="../../static.files/src-script-56102188.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-5f194d8c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">ledger_proto/</div>status.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers">
+<a href="#1" id="1">1</a>
+<a href="#2" id="2">2</a>
+<a href="#3" id="3">3</a>
+<a href="#4" id="4">4</a>
+<a href="#5" id="5">5</a>
+<a href="#6" id="6">6</a>
+<a href="#7" id="7">7</a>
+<a href="#8" id="8">8</a>
+<a href="#9" id="9">9</a>
+<a href="#10" id="10">10</a>
+<a href="#11" id="11">11</a>
+<a href="#12" id="12">12</a>
+<a href="#13" id="13">13</a>
+<a href="#14" id="14">14</a>
+<a href="#15" id="15">15</a>
+<a href="#16" id="16">16</a>
+<a href="#17" id="17">17</a>
+<a href="#18" id="18">18</a>
+<a href="#19" id="19">19</a>
+<a href="#20" id="20">20</a>
+<a href="#21" id="21">21</a>
+<a href="#22" id="22">22</a>
+<a href="#23" id="23">23</a>
+<a href="#24" id="24">24</a>
+<a href="#25" id="25">25</a>
+<a href="#26" id="26">26</a>
+<a href="#27" id="27">27</a>
+<a href="#28" id="28">28</a>
+<a href="#29" id="29">29</a>
+<a href="#30" id="30">30</a>
+<a href="#31" id="31">31</a>
+<a href="#32" id="32">32</a>
+<a href="#33" id="33">33</a>
+<a href="#34" id="34">34</a>
+<a href="#35" id="35">35</a>
+<a href="#36" id="36">36</a>
+<a href="#37" id="37">37</a>
+<a href="#38" id="38">38</a>
+<a href="#39" id="39">39</a>
+<a href="#40" id="40">40</a>
+<a href="#41" id="41">41</a>
+<a href="#42" id="42">42</a>
+<a href="#43" id="43">43</a>
+<a href="#44" id="44">44</a>
+<a href="#45" id="45">45</a>
+<a href="#46" id="46">46</a>
+<a href="#47" id="47">47</a>
+<a href="#48" id="48">48</a>
+<a href="#49" id="49">49</a>
+<a href="#50" id="50">50</a>
+<a href="#51" id="51">51</a>
+<a href="#52" id="52">52</a>
+<a href="#53" id="53">53</a>
+<a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
+<a href="#58" id="58">58</a>
+<a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
+<a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a></pre></div><pre class="rust"><code><span class="doccomment">/// Device status codes (two bytes, trailing response data)
+///
+/// Replicated from: https://github.com/LedgerHQ/ledger-live/blob/develop/libs/ledgerjs/packages/errors/src/index.ts#L212
+</span><span class="attr">#[derive(Copy, Clone, Debug, displaydoc::Display, num_enum::TryFromPrimitive)]
+#[repr(u16)]
+</span><span class="kw">pub enum </span>StatusCode {
+    <span class="doccomment">/// Access condition not fulfilled
+    </span>AccessConditionNotFulfilled = <span class="number">0x9804</span>,
+    <span class="doccomment">/// Algorithm not supported
+    </span>AlgorithmNotSupported = <span class="number">0x9484</span>,
+    <span class="doccomment">/// APDU class not supported
+    </span>ClaNotSupported = <span class="number">0x6e00</span>,
+    <span class="doccomment">/// Code blocked
+    </span>CodeBlocked = <span class="number">0x9840</span>,
+    <span class="doccomment">/// Code not initialized
+    </span>CodeNotInitialized = <span class="number">0x9802</span>,
+    <span class="doccomment">/// Command incompatible file structure
+    </span>CommandIncompatibleFileStructure = <span class="number">0x6981</span>,
+    <span class="doccomment">/// Conditions of use not satisfied
+    </span>ConditionsOfUseNotSatisfied = <span class="number">0x6985</span>,
+    <span class="doccomment">/// Contradiction invalidation
+    </span>ContradictionInvalidation = <span class="number">0x9810</span>,
+    <span class="doccomment">/// Contradiction secret code status
+    </span>ContradictionSecretCodeStatus = <span class="number">0x9808</span>,
+    <span class="doccomment">/// Custom image bootloader
+    </span>CustomImageBootloader = <span class="number">0x662f</span>,
+    <span class="doccomment">/// Custom image empty
+    </span>CustomImageEmpty = <span class="number">0x662e</span>,
+    <span class="doccomment">/// File already exists
+    </span>FileAlreadyExists = <span class="number">0x6a89</span>,
+    <span class="doccomment">/// File not found
+    </span>FileNotFound = <span class="number">0x9404</span>,
+    <span class="doccomment">/// GP auth failed
+    </span>GpAuthFailed = <span class="number">0x6300</span>,
+    <span class="doccomment">/// Device halted
+    </span>Halted = <span class="number">0x6faa</span>,
+    <span class="doccomment">/// Inconsistent file
+    </span>InconsistentFile = <span class="number">0x9408</span>,
+    <span class="doccomment">/// Incorrect data
+    </span>IncorrectData = <span class="number">0x6a80</span>,
+    <span class="doccomment">/// Incorrect length
+    </span>IncorrectLength = <span class="number">0x6700</span>,
+    <span class="doccomment">/// Incorrect P1 or P2 values
+    </span>IncorrectP1P2 = <span class="number">0x6b00</span>,
+    <span class="doccomment">/// Instruction not supported
+    </span>InsNotSupported = <span class="number">0x6d00</span>,
+    <span class="doccomment">/// Device not onboarded
+    </span>DeviceNotOnboarded = <span class="number">0x6d07</span>,
+    <span class="doccomment">/// Device also not onboarded
+    </span>DeviceNotOnboarded2 = <span class="number">0x6611</span>,
+    <span class="doccomment">/// Invalid KCV
+    </span>InvalidKcv = <span class="number">0x9485</span>,
+    <span class="doccomment">/// Invalid offset
+    </span>InvalidOffset = <span class="number">0x9402</span>,
+    <span class="doccomment">/// Licensing error
+    </span>Licensing = <span class="number">0x6f42</span>,
+    <span class="doccomment">/// Device locked
+    </span>LockedDevice = <span class="number">0x5515</span>,
+    <span class="doccomment">/// Max value reached
+    </span>MaxValueReached = <span class="number">0x9850</span>,
+    <span class="doccomment">/// Memory problem
+    </span>MemoryProblem = <span class="number">0x9240</span>,
+    <span class="doccomment">/// Missing critical parameter
+    </span>MissingCriticalParameter = <span class="number">0x6800</span>,
+    <span class="doccomment">/// No EF selected
+    </span>NoEfSelected = <span class="number">0x9400</span>,
+    <span class="doccomment">/// Not enough memory space
+    </span>NotEnoughMemorySpace = <span class="number">0x6a84</span>,
+    <span class="doccomment">/// OK
+    </span><span class="prelude-val">Ok </span>= <span class="number">0x9000</span>,
+    <span class="doccomment">/// Remaining PIN attempts
+    </span>PinRemainingAttempts = <span class="number">0x63c0</span>,
+    <span class="doccomment">/// Referenced data not found
+    </span>ReferencedDataNotFound = <span class="number">0x6a88</span>,
+    <span class="doccomment">/// Security status not satisfied
+    </span>SecurityStatusNotSatisfied = <span class="number">0x6982</span>,
+    <span class="doccomment">/// Technical problem
+    </span>TechnicalProblem = <span class="number">0x6f00</span>,
+    <span class="doccomment">/// Unknown APDU
+    </span>UnknownApdu = <span class="number">0x6d02</span>,
+    <span class="doccomment">/// User refused on device
+    </span>UserRefusedOnDevice = <span class="number">0x5501</span>,
+    <span class="doccomment">/// Not enough space
+    </span>NotEnoughSpace = <span class="number">0x5102</span>,
+}
+</code></pre></div></section></main></body></html>

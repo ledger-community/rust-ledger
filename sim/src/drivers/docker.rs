@@ -59,7 +59,10 @@ impl Driver for DockerDriver {
     async fn run(&self, app: &str, opts: Options) -> anyhow::Result<Self::Handle> {
         // Set container name
         let name = format!("speculos-{}", opts.http_port);
-        let create_options = Some(CreateContainerOptions { name: &name });
+        let create_options = Some(CreateContainerOptions {
+            name: &name,
+            platform: None,
+        });
 
         // Setup ports
         let mut ports = vec![opts.http_port];

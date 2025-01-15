@@ -3,7 +3,7 @@
 use core::fmt::Debug;
 
 use async_trait::async_trait;
-use strum::{Display, EnumString, EnumVariantNames};
+use strum::{Display, EnumString, VariantNames};
 
 use crate::Options;
 
@@ -14,7 +14,7 @@ mod docker;
 pub use docker::{DockerDriver, DockerHandle};
 
 /// Mode selector for generic drivers
-#[derive(Copy, Clone, PartialEq, Debug, clap::ValueEnum, EnumString, EnumVariantNames, Display)]
+#[derive(Copy, Clone, PartialEq, Debug, clap::ValueEnum, EnumString, VariantNames, Display)]
 #[strum(serialize_all = "lowercase")]
 pub enum DriverMode {
     /// Run Speculos as child process (requires that `speculos.py` is available on the PATH)

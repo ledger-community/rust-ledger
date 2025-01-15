@@ -27,23 +27,23 @@ default = [ "transport_usb", "transport_tcp", "transport_ble", "transport_usb_li
 
 [dependencies]
 
-thiserror = "1.0.40"
-encdec = "0.9.0"
-ledger-proto = { version = "0.1.0", default-features = false, features = [ "std" ] }
-tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-strum = { version = "0.24.1", features = ["derive"] }
-tokio = { version = "1.27.0", features = ["full"] }
-once_cell = "1.17.1"
-uuid = "1.3.2"
-futures = "0.3.28"
-async-trait = "0.1.68"
-displaydoc = "0.2.4"
+thiserror = "2.0"
+encdec = "0.10"
+ledger-proto = { version = "0.1", default-features = false, features = [ "std" ] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+strum = { version = "0.26", features = ["derive"] }
+tokio = { version = "1.27", features = ["full"] }
+once_cell = "1.17"
+uuid = "1.3"
+futures = "0.3"
+async-trait = "0.1"
+displaydoc = "0.2"
 
-clap = { version = "4.2.2", optional = true }
-hidapi = { version = "2.1.2", optional = true, default-features = false }
-btleplug = { version = "0.10.5", optional = true }
+clap = { version = "4.2", optional = true }
+hidapi = { version = "2.1", optional = true, default-features = false }
+btleplug = { version = "0.11", optional = true }
 
 
 [dev-dependencies]
-anyhow = "1.0.71"
+anyhow = "1.0"

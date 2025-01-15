@@ -15,6 +15,9 @@ pub enum ApduError {
 
     /// Invalid APDU encoding
     InvalidEncoding,
+
+    /// Invalid APDU variant
+    InvalidVariant,
 }
 
 impl From<encdec::Error> for ApduError {
@@ -22,6 +25,7 @@ impl From<encdec::Error> for ApduError {
         match value {
             encdec::Error::Length => Self::InvalidLength,
             encdec::Error::Utf8 => Self::InvalidUtf8,
+            encdec::Error::Variant => Self::InvalidVariant,
         }
     }
 }

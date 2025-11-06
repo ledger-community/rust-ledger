@@ -74,6 +74,9 @@ pub enum Model {
     NanoSP,
     /// Nano X
     NanoX,
+    Stax,
+    Flex,
+    ApexP
 }
 
 impl Model {
@@ -83,6 +86,9 @@ impl Model {
             Model::NanoS => "nanos",
             Model::NanoSP => "nanosplus",
             Model::NanoX => "nanox",
+            Model::Stax => "stax",
+            Model::Flex => "flex",
+            Model::ApexP => "apex_p",
         }
     }
 }
@@ -107,8 +113,8 @@ pub struct Options {
     pub model: Model,
 
     /// Display mode
-    #[clap(long, value_enum, default_value_t = Options::default().display)]
-    pub display: Display,
+    #[clap(long, value_enum)]
+    pub display: Option<Display>,
 
     /// SDK version override (defaults based on --model)
     #[clap(long)]
@@ -147,7 +153,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             model: Model::NanoSP,
-            display: Display::Headless,
+            display: None,
             sdk: None,
             api_level: None,
             seed: None,
@@ -166,9 +172,12 @@ impl Options {
         // Basic args
         let mut args = vec![
             format!("--model={}", self.model),
-            format!("--display={}", self.display),
             format!("--api-port={}", self.http_port),
         ];
+
+        if let Some(display) = &self.display {
+            args.push(format!("--display={display}"));
+        }
 
         if let Some(seed) = &self.seed {
             args.push(format!("--seed={seed}"));
@@ -222,6 +231,9 @@ mod tests {
             (Model::NanoSP, "nanosp", "nanosp"),
             (Model::NanoSP, "nanosp", "nanosplus"),
             (Model::NanoX, "nanox", "nanox"),
+            (Model::Stax, "stax", "stax"),
+            (Model::Flex, "flex", "flex"),
+            (Model::ApexP, "apex_p", "apex_p"),
         ];
 
         for (model, enc, dec) in t {

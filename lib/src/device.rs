@@ -88,8 +88,8 @@ pub trait Device {
                 Ok(apdu_output) => {
                     let mut offset: usize = 1;
                     while offset < apdu_output.data.len() - 2 {
-                        let data =
-                            decode_app_data(apdu_output.data.as_slice(), &mut offset).unwrap();
+                        let data = decode_app_data(apdu_output.data.as_slice(), &mut offset)
+                            .map_err(Error::from)?;
                         app_data_list.push(data);
                     }
                 }
@@ -97,7 +97,7 @@ pub trait Device {
                     break;
                 }
                 Err(e) => {
-                    println!("Command failed: {e:?}");
+                    error!("Command failed: {e:?}");
                     return Err(e);
                 }
             }

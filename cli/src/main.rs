@@ -86,14 +86,6 @@ pub enum Command {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ApduData(Vec<u8>);
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppInfo {
-    flags: u32,
-    hash_code_data: [u8; 32],
-    hash: [u8; 32],
-    name: String,
-}
-
 impl FromStr for ApduData {
     type Err = hex::FromHexError;
 

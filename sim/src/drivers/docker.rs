@@ -102,11 +102,15 @@ impl Driver for DockerDriver {
                 exposed_ports.clone().map(|p| (p.0, p.2)),
             )),
             host_config: Some(HostConfig {
+                #[cfg(any(target_os = "linux", target_os = "macos"))]
                 binds: Some(vec![String::from("/tmp/.X11-unix:/tmp/.X11-unix")]),
                 port_bindings: Some(HashMap::from_iter(exposed_ports.map(|p| (p.0, Some(p.1))))),
                 ..Default::default()
             }),
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
             env: Some(vec![String::from("DISPLAY=host.docker.internal:0")]),
+            #[cfg(target_os = "linux")]
+            env: Some(vec![String::from("DISPLAY=$DISPLAY")]),
             ..Default::default()
         };
 
@@ -202,8 +206,6 @@ impl Driver for DockerDriver {
                 .d
                 .inspect_container(&handle.name, Some(inspect_options))
                 .await?;
-
-            debug!("info: {:?}", info);
 
             // Return when container exits
             match info.state.and_then(|s| s.status) {

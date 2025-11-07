@@ -76,8 +76,7 @@ pub enum Model {
     NanoX,
     Stax,
     Flex,
-    #[strum(serialize = "apex_p")]
-    ApexP,
+    NanoGen5,
 }
 
 impl Model {
@@ -89,7 +88,7 @@ impl Model {
             Model::NanoX => "nanox",
             Model::Stax => "stax",
             Model::Flex => "flex",
-            Model::ApexP => "apex_p",
+            Model::NanoGen5 => "nanogen5",
         }
     }
 }
@@ -234,7 +233,7 @@ mod tests {
             (Model::NanoX, "nanox", "nanox"),
             (Model::Stax, "stax", "stax"),
             (Model::Flex, "flex", "flex"),
-            (Model::ApexP, "apex_p", "apex_p"),
+            (Model::NanoGen5, "nanogen5", "nanogen5"),
         ];
 
         for (model, enc, dec) in t {

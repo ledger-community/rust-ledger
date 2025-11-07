@@ -76,7 +76,8 @@ pub enum Model {
     NanoX,
     Stax,
     Flex,
-    ApexP
+    #[strum(serialize = "apex_p")]
+    ApexP,
 }
 
 impl Model {
@@ -157,7 +158,7 @@ impl Default for Options {
             sdk: None,
             api_level: None,
             seed: None,
-            http_port: 5000,
+            http_port: 5001,
             apdu_port: None,
             debug: false,
             root: None,

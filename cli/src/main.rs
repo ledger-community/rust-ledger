@@ -79,6 +79,8 @@ pub enum Command {
         #[clap(long)]
         app_name: String,
     },
+    /// List applications installed on device
+    ListApp,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -219,6 +221,20 @@ async fn main() -> anyhow::Result<()> {
                     Err(Error::Status(StatusCode::Ok)) => println!("App OK"),
                     Err(e) => println!("Command failed: {e:?}"),
                 }
+            }
+        }
+        Command::ListApp => {
+            let mut d = connect(&mut p, &devices, args.index).await?;
+            let list = d.app_list(args.timeout.into()).await?;
+            println!("flags, name, hash, hash_code:");
+            for info in &list {
+                println!(
+                    "{:08x}, {}, {}, {}",
+                    info.flags,
+                    info.name,
+                    info.hash.encode_hex::<String>(),
+                    info.hash_code_data.encode_hex::<String>()
+                );
             }
         }
     }

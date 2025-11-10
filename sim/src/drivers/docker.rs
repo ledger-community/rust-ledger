@@ -62,7 +62,11 @@ impl Driver for DockerDriver {
 
     async fn run(&self, app: &str, opts: Options) -> anyhow::Result<Self::Handle> {
         // Set container name
-        let name = format!("speculos-{}", opts.model.to_string().to_lowercase());
+        let name = format!(
+            "speculos-{}-{}",
+            opts.model.to_string().to_lowercase(),
+            opts.http_port
+        );
 
         let create_options = CreateContainerOptionsBuilder::default().name(&name).build();
 
@@ -102,20 +106,26 @@ impl Driver for DockerDriver {
                 exposed_ports.clone().map(|p| (p.0, p.2)),
             )),
             host_config: Some(HostConfig {
-                #[cfg(any(target_os = "linux", target_os = "macos"))]
+                #[cfg(target_os = "linux")]
                 binds: Some(vec![String::from("/tmp/.X11-unix:/tmp/.X11-unix")]),
                 port_bindings: Some(HashMap::from_iter(exposed_ports.map(|p| (p.0, Some(p.1))))),
                 ..Default::default()
             }),
-            #[cfg(any(target_os = "windows", target_os = "macos"))]
-            env: Some(vec![String::from("DISPLAY=host.docker.internal:0")]),
-            #[cfg(target_os = "linux")]
-            env: Some(vec![String::from("DISPLAY=$DISPLAY")]),
+
+            env: {
+                #[cfg(any(target_os = "windows", target_os = "macos"))]
+                let display = Some(vec![String::from("DISPLAY=host.docker.internal:0")]);
+                #[cfg(target_os = "linux")]
+                let display = std::env::var("DISPLAY")
+                    .ok()
+                    .map(|d| vec![format!("DISPLAY={}", d)]);
+                display
+            },
             ..Default::default()
         };
 
         // Remove existing container if there is one
-        let remove_options = RemoveContainerOptionsBuilder::new().build();
+        let remove_options = RemoveContainerOptionsBuilder::new().force(true).build();
         let _ = self.d.remove_container(&name, Some(remove_options)).await;
 
         // Create container

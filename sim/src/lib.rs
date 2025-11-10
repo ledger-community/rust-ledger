@@ -74,8 +74,11 @@ pub enum Model {
     NanoSP,
     /// Nano X
     NanoX,
+    /// Stax
     Stax,
+    /// Flex
     Flex,
+    /// Nano Gen 5
     NanoGen5,
 }
 

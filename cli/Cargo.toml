@@ -7,6 +7,13 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 
+[features]
+transport_usb_libusb = [ "ledger-lib/transport_usb_libusb" ]
+transport_usb_hidraw = [ "ledger-lib/transport_usb_hidraw" ]
+
+# Same default as in lib/Cargo.toml
+default = [ "transport_usb_libusb" ]
+
 [dependencies]
 clap = { version = "4.2", features = [ "derive" ] }
 anyhow = "1.0"
@@ -18,5 +25,5 @@ humantime = "2.1"
 hex = "0.4"
 serde_json = "1.0"
 
-ledger-lib = { version =  "0.1", features = [ "clap" ] }
+ledger-lib = { version =  "0.1", default-features = false, features = [ "clap", "transport_usb", "transport_tcp", "transport_ble" ] }
 ledger-proto = { version = "0.1" }

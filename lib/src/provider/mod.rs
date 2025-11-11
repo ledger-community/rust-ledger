@@ -99,7 +99,7 @@ impl Transport for LedgerProvider {
             .send((LedgerReq::List(filters), tx))
             .map_err(|_| Error::Unknown)?;
 
-        // Await resposne
+        // Await response
         match rx.recv().await {
             Some(LedgerResp::Devices(i)) => Ok(i),
             Some(LedgerResp::Error(e)) => Err(e),
@@ -116,7 +116,7 @@ impl Transport for LedgerProvider {
             .send((LedgerReq::Connect(info.clone()), tx))
             .map_err(|_| Error::Unknown)?;
 
-        // Await resposne
+        // Await response
         match rx.recv().await {
             Some(LedgerResp::Handle(index)) => Ok(LedgerHandle {
                 info,

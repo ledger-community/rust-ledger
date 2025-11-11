@@ -13,7 +13,7 @@ transport_usb = [ "hidapi" ]
 transport_tcp = []
 transport_ble = [ "btleplug" ]
 
-# Switch libusb backends, `libusb` works better with WSL so we're using that by default
+# Switch libusb backends, `libusb` works better with WSL and plain Linux so we're using that by default
 transport_usb_libusb = [ "hidapi/linux-static-libusb" ]
 transport_usb_hidraw = [ "hidapi/linux-static-hidraw" ]
 

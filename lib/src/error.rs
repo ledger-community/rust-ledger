@@ -17,11 +17,23 @@ pub enum Error {
     #[error(transparent)]
     Ble(#[from] btleplug::Error),
 
-    #[error("Unknown ledger model: {0}")]
-    UnknownModel(u16),
+    #[error("Attempted to send APDU to unknown device handle")]
+    ApduSentToUnknownDeviceHandle,
 
-    #[error("Unknown error")]
-    Unknown,
+    #[error("Request channel closed")]
+    RequestChannelClosed,
+
+    #[error("Request response channel closed")]
+    RequestResponseChannelClosed,
+
+    #[error("Unexpected response while listing devices")]
+    UnexpectedResponseWhileListingDevices,
+
+    #[error("Unexpected response while connecting")]
+    UnexpectedResponseWhileConnecting,
+
+    #[error("Unexpected response while exchanging data")]
+    UnexpectedResponseWhileExchangingData,
 
     #[error("No devices found")]
     NoDevices,
@@ -55,14 +67,20 @@ pub enum Error {
     #[error("Device in use")]
     DeviceInUse,
 
-    #[error("Already running application ({0})")]
-    ApplicationLoaded(String),
-
     #[error("Cannot read BLE device properties")]
     CannotReadBleDeviceProperties,
 
     #[error("Cannot find BLE device specs")]
     CannotFindBleDeviceSpecs,
+
+    #[error("The BLE device is still not connected after a successful connect")]
+    NotConnectedAfterSuccessfulBleConnect,
+
+    #[error("Missing read or write BLE characteristics")]
+    MissingReadOrWriteBleCharacteristics,
+
+    #[error("Unexpected MTU response")]
+    UnexpectedMtuResponse,
 }
 
 impl From<tokio::time::error::Elapsed> for Error {

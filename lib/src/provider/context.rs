@@ -89,7 +89,7 @@ impl ProviderImpl {
             Ok(v) => v,
             Err(e) => {
                 error!("Failed to create transport: {}", e);
-                return Err(Error::Unknown);
+                return Err(e);
             }
         };
 
@@ -183,7 +183,7 @@ impl ProviderImpl {
                     Some(d) => d,
                     None => {
                         error!("Attempted to send APDU to unknown device handle: {}", index);
-                        return Some(LedgerResp::Error(Error::Unknown));
+                        return Some(LedgerResp::Error(Error::ApduSentToUnknownDeviceHandle));
                     }
                 };
 

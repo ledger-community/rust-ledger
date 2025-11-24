@@ -97,13 +97,16 @@ impl Transport for LedgerProvider {
         // Send control request
         self.req_tx
             .send((LedgerReq::List(filters), tx))
-            .map_err(|_| Error::Unknown)?;
+            .map_err(|_| Error::RequestChannelClosed)?;
 
         // Await response
         match rx.recv().await {
             Some(LedgerResp::Devices(i)) => Ok(i),
             Some(LedgerResp::Error(e)) => Err(e),
-            _ => Err(Error::Unknown),
+            Some(LedgerResp::Resp(_) | LedgerResp::Handle(_)) => {
+                Err(Error::UnexpectedResponseWhileListingDevices)
+            }
+            None => Err(Error::RequestResponseChannelClosed),
         }
     }
 
@@ -114,7 +117,7 @@ impl Transport for LedgerProvider {
         // Send control request
         self.req_tx
             .send((LedgerReq::Connect(info.clone()), tx))
-            .map_err(|_| Error::Unknown)?;
+            .map_err(|_| Error::RequestChannelClosed)?;
 
         // Await response
         match rx.recv().await {
@@ -124,7 +127,10 @@ impl Transport for LedgerProvider {
                 req_tx: self.req_tx.clone(),
             }),
             Some(LedgerResp::Error(e)) => Err(e),
-            _ => Err(Error::Unknown),
+            Some(LedgerResp::Devices(_) | LedgerResp::Resp(_)) => {
+                Err(Error::UnexpectedResponseWhileConnecting)
+            }
+            None => Err(Error::RequestResponseChannelClosed),
         }
     }
 }
@@ -138,13 +144,16 @@ impl Exchange for LedgerHandle {
         // Send APDU request
         self.req_tx
             .send((LedgerReq::Req(self.index, command.to_vec(), timeout), tx))
-            .map_err(|_| Error::Unknown)?;
+            .map_err(|_| Error::RequestChannelClosed)?;
 
         // Await APDU response
         match rx.recv().await {
             Some(LedgerResp::Resp(data)) => Ok(data),
             Some(LedgerResp::Error(e)) => Err(e),
-            _ => Err(Error::Unknown),
+            Some(LedgerResp::Devices(_) | LedgerResp::Handle(_)) => {
+                Err(Error::UnexpectedResponseWhileExchangingData)
+            }
+            None => Err(Error::RequestResponseChannelClosed),
         }
     }
 }

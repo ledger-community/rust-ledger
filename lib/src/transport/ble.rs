@@ -194,12 +194,12 @@ impl Transport for BleTransport {
         if !p.is_connected().await? {
             if let Err(e) = p.connect().await {
                 warn!("Failed to connect to {name}: {e:?}");
-                return Err(Error::Unknown);
+                return Err(Error::Ble(e));
             }
 
             if !p.is_connected().await? {
                 warn!("Not connected to {name}");
-                return Err(Error::Unknown);
+                return Err(Error::NotConnectedAfterSuccessfulBleConnect);
             }
         }
 
@@ -217,7 +217,7 @@ impl Transport for BleTransport {
             (Some(w), Some(r)) => (w, r),
             _ => {
                 error!("Failed to match read and write characteristics for {name}");
-                return Err(Error::Unknown);
+                return Err(Error::MissingReadOrWriteBleCharacteristics);
             }
         };
 
@@ -356,11 +356,11 @@ impl BleDevice {
             }
             Some(r) => {
                 warn!("Unexpected MTU response: {r:02x?}");
-                return Err(Error::Unknown);
+                return Err(Error::UnexpectedMtuResponse);
             }
             None => {
                 warn!("Failed to request MTU");
-                return Err(Error::Unknown);
+                return Err(Error::Closed);
             }
         };
 

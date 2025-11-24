@@ -11,7 +11,7 @@ use crate::{
     error::Error,
     provider::{LedgerReq, LedgerResp, ReqChannel},
     transport::{GenericDevice, GenericTransport, Transport},
-    Exchange,
+    NonSendExchange,
 };
 
 /// Context for provider task
@@ -188,7 +188,7 @@ impl ProviderImpl {
                 };
 
                 // Issue APDU request to device and return response
-                match Exchange::exchange(d, apdu, *timeout).await {
+                match NonSendExchange::exchange(d, apdu, *timeout).await {
                     Ok(r) => LedgerResp::Resp(r),
                     Err(e) => LedgerResp::Error(e),
                 }

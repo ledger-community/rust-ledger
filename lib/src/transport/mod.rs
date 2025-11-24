@@ -2,17 +2,8 @@
 //!
 //! Transports are gated by `transport_X` features, while [GenericTransport] and
 //! [GenericDevice] provide an abstraction over enabled transports.
-//!
-//! # Safety
-//! [UsbTransport] (and thus [GenericTransport] when `transport_usb` feature is enabled)
-//! is _not_ `Send` or `Sync`, however this is marked as such to appease `async_trait`...
-//!
-//! Once `async_trait` has stabilised transports can be marked correctly.
-//! (This is also implemented under the `unstable_async_trait` feature)
-//! Until then, use [LedgerProvider](crate::LedgerProvider) for a `Sync + Send` interface or
-//!  be _super sure_ you're not going to call transports from a multi-threaded context.
 
-use std::{fmt::Debug, time::Duration};
+use std::{fmt::Debug, marker::PhantomData, sync::MutexGuard, time::Duration};
 
 #[cfg(feature = "transport_ble")]
 use tracing::warn;
@@ -36,18 +27,21 @@ pub use tcp::{TcpDevice, TcpInfo, TcpTransport};
 
 use crate::{
     info::{ConnInfo, LedgerInfo},
-    Error, Exchange, Filters,
+    Error, Filters, NonSendExchange,
 };
 
-/// [Transport] trait provides an abstract interface for transport implementations
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
+/// A PhantomData to force a type to be !Send
+pub type PhantomNonSend = PhantomData<MutexGuard<'static, ()>>;
+
+/// [Transport] trait provides an abstract interface for transport implementations.
+#[allow(async_fn_in_trait)]
 pub trait Transport {
     /// Connection filters
     type Filters: Default + Debug;
     /// Device information, used for listing and connecting
     type Info: Debug;
     /// Device handle for interacting with the device
-    type Device: Exchange;
+    type Device: NonSendExchange;
 
     /// List available devices
     async fn list(&mut self, filters: Self::Filters) -> Result<Vec<LedgerInfo>, Error>;
@@ -57,7 +51,6 @@ pub trait Transport {
 }
 
 /// Blanket [Transport] implementation for references types
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 impl<T: Transport + Send> Transport for &mut T
 where
     <T as Transport>::Device: Send,
@@ -103,7 +96,7 @@ pub enum GenericDevice {
 }
 
 impl GenericTransport {
-    /// Create a new [GenericTransport] with all endabled transports
+    /// Create a new [GenericTransport] with all enabled transports
     pub async fn new() -> Result<Self, Error> {
         debug!("Initialising GenericTransport");
 
@@ -120,7 +113,6 @@ impl GenericTransport {
     }
 }
 
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 impl Transport for GenericTransport {
     type Filters = Filters;
     type Info = LedgerInfo;
@@ -202,8 +194,7 @@ impl GenericDevice {
     }
 }
 
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
-impl Exchange for GenericDevice {
+impl NonSendExchange for GenericDevice {
     /// Exchange an APDU with the [GenericDevice]
     async fn exchange(&mut self, command: &[u8], timeout: Duration) -> Result<Vec<u8>, Error> {
         match self {

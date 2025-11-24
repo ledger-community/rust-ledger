@@ -84,7 +84,6 @@ impl LedgerProvider {
 }
 
 /// [Transport] implementation for high-level [LedgerProvider]
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 impl Transport for LedgerProvider {
     type Device = LedgerHandle;
     type Info = LedgerInfo;
@@ -136,7 +135,6 @@ impl Transport for LedgerProvider {
 }
 
 /// [Exchange] implementation for [LedgerProvider] backed [LedgerHandle]
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 impl Exchange for LedgerHandle {
     async fn exchange(&mut self, command: &[u8], timeout: Duration) -> Result<Vec<u8>, Error> {
         let (tx, mut rx) = unbounded_channel::<LedgerResp>();

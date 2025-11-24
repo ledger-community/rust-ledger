@@ -15,18 +15,18 @@ use ledger_proto::{
 
 use crate::{
     info::{AppInfo, DeviceInfo},
-    Error, Exchange,
+    Error, NonSendExchange,
 };
 
 const APDU_BUFF_LEN: usize = 256;
 
-/// [Device] provides a high-level interface exchanging APDU objects with implementers of [Exchange]
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
+/// [Device] provides a high-level interface exchanging APDU objects with implementers of [NonSendExchange].
+#[allow(async_fn_in_trait)]
 pub trait Device {
-    /// Issue a request APDU, returning a reponse APDU
+    /// Issue a request APDU, returning a response APDU
     async fn request<'a, 'b, RESP: EncDec<'b, ApduError>>(
         &mut self,
-        request: impl ApduReq<'a> + Send,
+        request: impl ApduReq<'a>,
         buff: &'b mut [u8],
         timeout: Duration,
     ) -> Result<RESP, Error>;
@@ -106,13 +106,12 @@ pub trait Device {
     }
 }
 
-/// Generic [Device] implementation for types supporting [Exchange]
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
-impl<T: Exchange + Send> Device for T {
+/// Generic [Device] implementation for types supporting [NonSendExchange]
+impl<T: NonSendExchange> Device for T {
     /// Issue a request APDU to a device, encoding and decoding internally then returning a response APDU
     async fn request<'a, 'b, RESP: EncDec<'b, ApduError>>(
         &mut self,
-        req: impl ApduReq<'a> + Send,
+        req: impl ApduReq<'a>,
         buff: &'b mut [u8],
         timeout: Duration,
     ) -> Result<RESP, Error> {

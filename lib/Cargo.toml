@@ -6,6 +6,7 @@ keywords = [ "ledger", "wallet", "usb", "hid", "bluetooth" ]
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
+rust-version = "1.75" # Needed for "async fn" and "impl Trait" in traits.
 
 [features]
 # Select enabled transports
@@ -20,19 +21,15 @@ transport_usb_hidraw = [ "hidapi/linux-static-hidraw" ]
 # Enable `clap` attributes on exported objects
 clap = [ "dep:clap" ]
 
-# enable `async_fn_in_trait` nightly feature, removes need for `async_trait` macros
-unstable_async_trait = []
-
 default = [ "transport_usb", "transport_tcp", "transport_ble", "transport_usb_libusb" ]
 
 [dependencies]
-async-trait = "0.1"
 btleplug = { version = "0.11", optional = true }
 clap = { version = "4.2", optional = true }
 displaydoc = "0.2"
 encdec = "0.10"
 futures = "0.3"
-hidapi = { version = "2.1", optional = true, default-features = false }
+hidapi = { version = "2.6", optional = true, default-features = false }
 lazy_static = "1.5"
 ledger-proto = { version = "0.1", default-features = false, features = [ "std" ] }
 once_cell = "1.17"

@@ -1,22 +1,15 @@
 //! USB HID transport implementation
-//!
-//! # SAFETY
-//!
-//! This is _not_ `Send` or thread safe, see [transport][crate::transport] docs for
-//! more details.
-//!
 
-use std::{ffi::CString, fmt::Display, io::ErrorKind, time::Duration};
+use std::{ffi::CString, fmt::Display, io::ErrorKind, marker::PhantomData, time::Duration};
 
 use hidapi::{HidApi, HidDevice, HidError};
 use tracing::{debug, error, trace, warn};
 
 use crate::{
     info::{LedgerInfo, Model},
-    Error,
+    transport::PhantomNonSend,
+    Error, NonSendExchange, Transport,
 };
-
-use super::{Exchange, Transport};
 
 /// Basic USB device information
 #[derive(Clone, PartialEq, Debug)]
@@ -49,17 +42,22 @@ fn u16_parse_hex(s: &str) -> Result<u16, std::num::ParseIntError> {
 
 /// USB HID based transport
 ///
-/// # Safety
-/// Due to `hidapi` this is not thread safe an only one instance must exist in an application.
-/// If you don't need low-level control see [crate::LedgerProvider] for a tokio based wrapper.
+/// This type is deliberately non-`Send` to avoid potential quirks that might happen when
+/// the underlying `hidapi` type changes threads.
+/// If you don't need low-level control, see [LedgerProvider](crate::LedgerProvider) for a tokio-based wrapper.
 pub struct UsbTransport {
     hid_api: HidApi,
+    _phantom: PhantomNonSend,
 }
 
 /// USB HID based device
+///
+/// This type is deliberately non-`Send` to avoid potential quirks that might happen when
+/// the underlying `hidapi` type changes threads.
 pub struct UsbDevice {
     pub info: UsbInfo,
     device: HidDevice,
+    _phantom: PhantomNonSend,
 }
 
 /// Ledger USB VID
@@ -121,29 +119,11 @@ impl UsbTransport {
 
         Ok(Self {
             hid_api: HidApi::new()?,
+            _phantom: PhantomData,
         })
     }
 }
 
-// With the unstable_async_trait feature we can (correctly) mark this as non-send
-// however [async_trait] can't easily differentiate between send and non-send so we're
-// exposing this as Send for the moment
-
-#[cfg(feature = "unstable_async_trait")]
-impl !Send for UsbDevice {}
-#[cfg(feature = "unstable_async_trait")]
-impl !Sync for UsbDevice {}
-
-#[cfg(feature = "unstable_async_trait")]
-impl !Send for UsbTransport {}
-#[cfg(feature = "unstable_async_trait")]
-impl !Sync for UsbTransport {}
-
-/// WARNING: THIS IS A LIE TO APPEASE `async_trait`
-#[cfg(not(feature = "unstable_async_trait"))]
-unsafe impl Send for UsbTransport {}
-
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 impl Transport for UsbTransport {
     type Filters = ();
     type Info = UsbInfo;
@@ -199,7 +179,11 @@ impl Transport for UsbTransport {
         match d {
             Ok(d) => {
                 debug!("Connected to USB device: {:?}", info);
-                Ok(UsbDevice { device: d, info })
+                Ok(UsbDevice {
+                    device: d,
+                    info,
+                    _phantom: PhantomData,
+                })
             }
             Err(e) => {
                 debug!("Failed to connect to USB device: {:?}", e);
@@ -340,9 +324,8 @@ impl UsbDevice {
     }
 }
 
-/// [Exchange] impl for sending APDUs to a [UsbDevice]
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
-impl Exchange for UsbDevice {
+/// [NonSendExchange] impl for sending APDUs to a [UsbDevice]
+impl NonSendExchange for UsbDevice {
     async fn exchange(&mut self, command: &[u8], timeout: Duration) -> Result<Vec<u8>, Error> {
         // Write APDU command, chunked for HID transport
         self.write(command)?;

@@ -12,10 +12,9 @@ use btleplug::{
 use futures::{stream::StreamExt, Stream};
 use tracing::{debug, error, trace, warn};
 
-use super::{Exchange, Transport};
 use crate::{
     info::{ble_spec_by_service_uuid, model_by_ble_service_uuid, ConnInfo, LedgerInfo},
-    Error,
+    Error, Exchange, Transport,
 };
 
 /// Transport for listing and connecting to BLE connected Ledger devices
@@ -131,7 +130,6 @@ impl BleTransport {
 }
 
 /// [Transport] implementation for [BleTransport]
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 impl Transport for BleTransport {
     type Filters = ();
     type Info = BleInfo;
@@ -377,7 +375,6 @@ impl BleDevice {
 }
 
 /// [Exchange] impl for BLE backed devices
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 impl Exchange for BleDevice {
     async fn exchange(&mut self, command: &[u8], timeout: Duration) -> Result<Vec<u8>, Error> {
         // Fetch notification channel for responses

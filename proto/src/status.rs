@@ -1,6 +1,6 @@
 /// Device status codes (two bytes, trailing response data)
 ///
-/// Replicated from: https://github.com/LedgerHQ/ledger-live/blob/develop/libs/ledgerjs/packages/errors/src/index.ts#L212
+/// Replicated from: <https://github.com/LedgerHQ/ledger-live/blob/develop/libs/ledgerjs/packages/errors/src/index.ts#L212>
 #[derive(Copy, Clone, Debug, displaydoc::Display, num_enum::TryFromPrimitive)]
 #[repr(u16)]
 pub enum StatusCode {

@@ -57,6 +57,12 @@ pub enum Error {
 
     #[error("Already running application ({0})")]
     ApplicationLoaded(String),
+
+    #[error("Cannot read BLE device properties")]
+    CannotReadBleDeviceProperties,
+
+    #[error("Cannot find BLE device specs")]
+    CannotFindBleDeviceSpecs,
 }
 
 impl From<tokio::time::error::Elapsed> for Error {

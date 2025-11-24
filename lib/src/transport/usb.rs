@@ -167,7 +167,7 @@ impl Transport for UsbTransport {
             .device_list()
             .filter(|d| d.vendor_id() == LEDGER_VID && is_apdu_interface(d))
             .map(|d| LedgerInfo {
-                model: Model::from_pid(d.product_id()),
+                model: Model::from_usb_pid(d.product_id()),
                 conn: UsbInfo {
                     vid: d.vendor_id(),
                     pid: d.product_id(),

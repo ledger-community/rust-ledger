@@ -78,7 +78,7 @@ impl Transport for TcpTransport {
             Err(_) => {
                 devices.push(LedgerInfo {
                     conn: TcpInfo { addr }.into(),
-                    model: Model::Unknown(0),
+                    model: Model::Unknown { usb_pid: None },
                 });
             }
         }

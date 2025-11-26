@@ -68,7 +68,7 @@ impl Model {
                     .matches_usb_pid(usb_pid)
                     .then_some(device_info.model)
             })
-            .unwrap_or_else(|| Model::Unknown {
+            .unwrap_or(Model::Unknown {
                 usb_pid: Some(usb_pid),
             })
     }

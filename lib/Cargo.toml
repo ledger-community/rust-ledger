@@ -6,7 +6,7 @@ keywords = [ "ledger", "wallet", "usb", "hid", "bluetooth" ]
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
-rust-version = "1.75" # Needed for "async fn" and "impl Trait" in traits.
+rust-version.workspace = true
 
 [features]
 # Select enabled transports
@@ -24,6 +24,7 @@ clap = [ "dep:clap" ]
 default = [ "transport_usb", "transport_tcp", "transport_ble", "transport_usb_libusb" ]
 
 [dependencies]
+async-trait = "0.1"
 btleplug = { version = "0.11", optional = true }
 clap = { version = "4.2", optional = true }
 displaydoc = "0.2"

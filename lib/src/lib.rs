@@ -2,7 +2,7 @@
 //!
 //! [Device] provides a high-level API for exchanging APDUs with Ledger devices using the [ledger_proto] traits.
 //! This is suitable for extension with application-specific interface traits, and automatically
-//! implemented over [NonSendExchange] for low-level byte exchange with devices.
+//! implemented over [Exchange] for low-level byte exchange with devices.
 //!
 //! [LedgerProvider] and [LedgerHandle] provide a high-level tokio-compatible [Transport]
 //! for application integration, supporting connecting to and interacting with ledger devices.
@@ -126,6 +126,9 @@ impl<T: Exchange> NonSendExchange for T {
 /// is not the desired application, then launches the specified app
 /// by name.
 ///
+/// Note that this function is only usable with a `Transport` whose associated `Device` type
+/// implements `Exchange` (e.g. `LedgerProvider`).
+///
 /// # WARNING
 /// Due to the constant re-enumeration of devices when changing app
 /// contexts, and the lack of reported serial numbers by ledger devices,
@@ -140,7 +143,7 @@ pub async fn launch_app<T>(
 ) -> Result<<T as Transport>::Device, Error>
 where
     T: Transport<Info = LedgerInfo, Filters = Filters> + Send,
-    <T as Transport>::Device: Send,
+    <T as Transport>::Device: Exchange + Send,
 {
     let mut buff = [0u8; 256];
 

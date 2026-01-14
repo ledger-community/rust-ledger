@@ -9,12 +9,16 @@ use std::{
 };
 
 use async_trait::async_trait;
+use bollard::body_full;
+use bollard::models::ContainerCreateBody;
+use bollard::models::HostConfig;
+use bollard::query_parameters::CreateContainerOptionsBuilder;
+use bollard::query_parameters::{
+    InspectContainerOptionsBuilder, LogsOptionsBuilder, RemoveContainerOptionsBuilder,
+    StartContainerOptionsBuilder, StopContainerOptionsBuilder, UploadToContainerOptionsBuilder,
+};
 use bollard::{
-    container::{
-        Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StartContainerOptions,
-        StopContainerOptions, UploadToContainerOptions,
-    },
-    service::{ContainerStateStatusEnum, HostConfig, PortBinding},
+    models::{ContainerStateStatusEnum, PortBinding},
     Docker,
 };
 use bytes::{BufMut, BytesMut};
@@ -49,7 +53,7 @@ impl DockerDriver {
     }
 }
 
-const DEFAULT_IMAGE: &str = "ghcr.io/ledgerhq/speculos";
+const DEFAULT_IMAGE: &str = "ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest";
 
 /// [Driver] implementation for [DockerDriver]
 #[async_trait]
@@ -58,11 +62,13 @@ impl Driver for DockerDriver {
 
     async fn run(&self, app: &str, opts: Options) -> anyhow::Result<Self::Handle> {
         // Set container name
-        let name = format!("speculos-{}", opts.http_port);
-        let create_options = Some(CreateContainerOptions {
-            name: &name,
-            platform: None,
-        });
+        let name = format!(
+            "speculos-{}-{}",
+            opts.model.to_string().to_lowercase(),
+            opts.http_port
+        );
+
+        let create_options = CreateContainerOptionsBuilder::default().name(&name).build();
 
         // Setup ports
         let mut ports = vec![opts.http_port];
@@ -82,14 +88,15 @@ impl Driver for DockerDriver {
         let app_file = app_path.file_name().and_then(|n| n.to_str()).unwrap();
 
         // Setup speculos command
-        let mut cmd = vec![];
+
+        let mut cmd = vec!["speculos".to_string()];
         cmd.append(&mut opts.args());
         cmd.push(format!("/app/{app_file}"));
 
         debug!("command: {}", cmd.join(" "));
 
         // Setup container
-        let create_config = Config {
+        let create_config = ContainerCreateBody {
             image: Some(DEFAULT_IMAGE.to_string()),
             cmd: Some(cmd),
             attach_stdout: Some(true),
@@ -99,29 +106,33 @@ impl Driver for DockerDriver {
                 exposed_ports.clone().map(|p| (p.0, p.2)),
             )),
             host_config: Some(HostConfig {
+                #[cfg(target_os = "linux")]
+                binds: Some(vec![String::from("/tmp/.X11-unix:/tmp/.X11-unix")]),
                 port_bindings: Some(HashMap::from_iter(exposed_ports.map(|p| (p.0, Some(p.1))))),
                 ..Default::default()
             }),
+
+            env: {
+                #[cfg(any(target_os = "windows", target_os = "macos"))]
+                let display = Some(vec![String::from("DISPLAY=host.docker.internal:0")]);
+                #[cfg(target_os = "linux")]
+                let display = std::env::var("DISPLAY")
+                    .ok()
+                    .map(|d| vec![format!("DISPLAY={}", d)]);
+                display
+            },
             ..Default::default()
         };
 
         // Remove existing container if there is one
-        let _ = self
-            .d
-            .remove_container(
-                &name,
-                Some(RemoveContainerOptions {
-                    force: true,
-                    ..Default::default()
-                }),
-            )
-            .await;
+        let remove_options = RemoveContainerOptionsBuilder::new().force(true).build();
+        let _ = self.d.remove_container(&name, Some(remove_options)).await;
 
         // Create container
         debug!("Creating container {}", name);
         let _create_info = self
             .d
-            .create_container(create_options, create_config)
+            .create_container(Some(create_options), create_config)
             .await?;
 
         // Generate application archive
@@ -134,35 +145,29 @@ impl Driver for DockerDriver {
         drop(tar);
 
         // Write app archive to container
-        let upload_options = UploadToContainerOptions {
-            path: "/",
-            ..Default::default()
-        };
+        let upload_options = UploadToContainerOptionsBuilder::new().path("/").build();
+
         self.d
-            .upload_to_container(&name, Some(upload_options), buff.to_vec().into())
+            .upload_to_container(&name, Some(upload_options), body_full(buff.to_vec().into()))
             .await?;
 
         // Start container
         debug!("Starting container {}", name);
-        let _start_info = self
-            .d
-            .start_container(&name, None::<StartContainerOptions<String>>)
-            .await?;
+        let start_options = StartContainerOptionsBuilder::new().build();
+        let _start_info = self.d.start_container(&name, Some(start_options)).await?;
 
         debug!("Container started");
 
         let (exit_tx, mut exit_rx) = channel();
 
         // Setup log streaming task
-        let mut logs = self.d.logs::<String>(
-            &name,
-            Some(LogsOptions {
-                stderr: true,
-                stdout: true,
-                follow: true,
-                ..Default::default()
-            }),
-        );
+        let log_options = LogsOptionsBuilder::new()
+            .stderr(true)
+            .stdout(true)
+            .follow(true)
+            .build();
+
+        let mut logs = self.d.logs(&name, Some(log_options));
 
         tokio::task::spawn(async move {
             debug!("start log task");
@@ -204,10 +209,13 @@ impl Driver for DockerDriver {
 
         // Poll container info periodically
         loop {
-            // Fetch container info
-            let info = self.d.inspect_container(&handle.name, None).await?;
+            let inspect_options = InspectContainerOptionsBuilder::new().build();
 
-            debug!("info: {:?}", info);
+            // Fetch container info
+            let info = self
+                .d
+                .inspect_container(&handle.name, Some(inspect_options))
+                .await?;
 
             // Return when container exits
             match info.state.and_then(|s| s.status) {
@@ -229,16 +237,16 @@ impl Driver for DockerDriver {
         let _ = handle.exit_tx.send(());
 
         // Send container stop signal
-        let options = Some(StopContainerOptions { t: 0 });
+        let stop_options = StopContainerOptionsBuilder::new().t(0).build();
+        let options = Some(stop_options);
         let _ = self.d.stop_container(&handle.name, options).await;
 
         // Remove container
         debug!("Removing container");
-        let options = Some(RemoveContainerOptions {
-            force: true,
-            ..Default::default()
-        });
-        self.d.remove_container(&handle.name, options).await?;
+        let remove_options = RemoveContainerOptionsBuilder::new().force(true).build();
+        self.d
+            .remove_container(&handle.name, Some(remove_options))
+            .await?;
 
         debug!("Container removed");
 

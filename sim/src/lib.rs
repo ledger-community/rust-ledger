@@ -74,6 +74,12 @@ pub enum Model {
     NanoSP,
     /// Nano X
     NanoX,
+    /// Stax
+    Stax,
+    /// Flex
+    Flex,
+    /// Nano Gen 5
+    NanoGen5,
 }
 
 impl Model {
@@ -83,6 +89,9 @@ impl Model {
             Model::NanoS => "nanos",
             Model::NanoSP => "nanosplus",
             Model::NanoX => "nanox",
+            Model::Stax => "stax",
+            Model::Flex => "flex",
+            Model::NanoGen5 => "nanogen5",
         }
     }
 }
@@ -107,8 +116,8 @@ pub struct Options {
     pub model: Model,
 
     /// Display mode
-    #[clap(long, value_enum, default_value_t = Options::default().display)]
-    pub display: Display,
+    #[clap(long, value_enum)]
+    pub display: Option<Display>,
 
     /// SDK version override (defaults based on --model)
     #[clap(long)]
@@ -147,11 +156,11 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             model: Model::NanoSP,
-            display: Display::Headless,
+            display: None,
             sdk: None,
             api_level: None,
             seed: None,
-            http_port: 5000,
+            http_port: 5001,
             apdu_port: None,
             debug: false,
             root: None,
@@ -166,9 +175,12 @@ impl Options {
         // Basic args
         let mut args = vec![
             format!("--model={}", self.model),
-            format!("--display={}", self.display),
             format!("--api-port={}", self.http_port),
         ];
+
+        if let Some(display) = &self.display {
+            args.push(format!("--display={display}"));
+        }
 
         if let Some(seed) = &self.seed {
             args.push(format!("--seed={seed}"));
@@ -222,6 +234,9 @@ mod tests {
             (Model::NanoSP, "nanosp", "nanosp"),
             (Model::NanoSP, "nanosp", "nanosplus"),
             (Model::NanoX, "nanox", "nanox"),
+            (Model::Stax, "stax", "stax"),
+            (Model::Flex, "flex", "flex"),
+            (Model::NanoGen5, "nanogen5", "nanogen5"),
         ];
 
         for (model, enc, dec) in t {

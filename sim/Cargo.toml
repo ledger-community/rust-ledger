@@ -16,7 +16,7 @@ tokio = { version = "1.20", features = [ "full" ] }
 lazy_static = "1.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-bollard = "0.18"
+bollard = "0.19.4"
 async-trait = "0.1"
 futures = "0.3"
 tar = "0.4"

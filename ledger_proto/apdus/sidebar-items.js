@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["decode_app_data"],"struct":["AppData","AppFlags","AppInfoReq","AppInfoResp","AppListNextReq","AppListStartReq","DeviceInfoReq","DeviceInfoResp","ExitAppReq","RunAppReq"]};

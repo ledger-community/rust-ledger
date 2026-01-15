@@ -1,22 +1,15 @@
 //! USB HID transport implementation
-//!
-//! # SAFETY
-//!
-//! This is _not_ `Send` or thread safe, see [transport][crate::transport] docs for
-//! more details.
-//!
 
-use std::{ffi::CString, fmt::Display, io::ErrorKind, time::Duration};
+use std::{ffi::CString, fmt::Display, io::ErrorKind, marker::PhantomData, time::Duration};
 
 use hidapi::{HidApi, HidDevice, HidError};
 use tracing::{debug, error, trace, warn};
 
 use crate::{
     info::{LedgerInfo, Model},
-    Error,
+    transport::PhantomNonSend,
+    Error, NonSendExchange, Transport,
 };
-
-use super::{Exchange, Transport};
 
 /// Basic USB device information
 #[derive(Clone, PartialEq, Debug)]
@@ -49,50 +42,88 @@ fn u16_parse_hex(s: &str) -> Result<u16, std::num::ParseIntError> {
 
 /// USB HID based transport
 ///
-/// # Safety
-/// Due to `hidapi` this is not thread safe an only one instance must exist in an application.
-/// If you don't need low-level control see [crate::LedgerProvider] for a tokio based wrapper.
+/// This type is deliberately non-`Send` to avoid potential quirks that might happen when
+/// the underlying `hidapi` type changes threads.
+/// If you don't need low-level control, see [LedgerProvider](crate::LedgerProvider) for a tokio-based wrapper.
 pub struct UsbTransport {
     hid_api: HidApi,
+    _phantom: PhantomNonSend,
 }
 
 /// USB HID based device
+///
+/// This type is deliberately non-`Send` to avoid potential quirks that might happen when
+/// the underlying `hidapi` type changes threads.
 pub struct UsbDevice {
     pub info: UsbInfo,
     device: HidDevice,
+    _phantom: PhantomNonSend,
 }
 
 /// Ledger USB VID
 pub const LEDGER_VID: u16 = 0x2c97;
 
+/// HID usage page used by Ledger for its APDU interface.
+#[allow(unused)]
+const LEDGER_APDU_USAGE_PAGE: u16 = 0xffa0;
+/// The value of "interface_number" that Ledger's APDU interface will have.
+#[allow(unused)]
+const LEDGER_APDU_INTREFACE_NUMBER: i32 = 0;
+
+fn is_apdu_interface(device_info: &hidapi::DeviceInfo) -> bool {
+    // A Ledger device has two USB HID interfaces, one of which is the "APDU" interface
+    // and the other one FIDO/U2F; we need to select the former and ignore the latter.
+
+    // The more reliable way of selecting the APDU interface is to look for the corresponding
+    // "usage_page"; however, it's not available on Linux libusb backends, in which case
+    // we select the interface based on its interface number. This is similar to how it's done in Ledger Live -
+    // https://github.com/LedgerHQ/ledger-live/blob/4b73b3b61f07bc44fe4a04606e3cf1e610e7eb51/libs/ledgerjs/packages/hw-transport-node-hid-noevents/src/TransportNodeHid.ts#L19-L22
+    // except that in Ledger Live they always resort to using the interface number on Linux, but
+    // here it's done only for Linux/libusb.
+    // Note: on Windows, the FIDO interface is never returned by `hidapi::HidApi::devices_list`
+    // for some reason; presumably it's because the interface is held by the OS. But it's still
+    // better to do the filtering "just in case" and also for consistency with Ledger Live.
+
+    #[cfg(all(feature = "transport_usb_libusb", target_os = "linux"))]
+    {
+        let is_apdu = device_info.interface_number() == LEDGER_APDU_INTREFACE_NUMBER;
+        debug!(
+            "(PID={pid:#x}) USB interface #{inum} is APDU: {is_apdu}",
+            pid = device_info.product_id(),
+            inum = device_info.interface_number()
+        );
+        is_apdu
+    }
+
+    #[cfg(not(all(feature = "transport_usb_libusb", target_os = "linux")))]
+    {
+        let is_apdu = device_info.usage_page() == LEDGER_APDU_USAGE_PAGE;
+        debug!(
+            "(PID={pid:#x}) USB interface #{inum} (usage page = {uspg:#x}) is APDU: {is_apdu}",
+            pid = device_info.product_id(),
+            inum = device_info.interface_number(),
+            uspg = device_info.usage_page(),
+        );
+        is_apdu
+    }
+}
+
 impl UsbTransport {
     /// Create a new [UsbTransport]
     pub fn new() -> Result<Self, Error> {
+        #[cfg(feature = "transport_usb_libusb")]
+        debug!("Feature transport_usb_libusb is enabled");
+
+        #[cfg(feature = "transport_usb_hidraw")]
+        debug!("Feature transport_usb_hidraw is enabled");
+
         Ok(Self {
             hid_api: HidApi::new()?,
+            _phantom: PhantomData,
         })
     }
 }
 
-// With the unstable_async_trait feature we can (correctly) mark this as non-send
-// however [async_trait] can't easily differentiate between send and non-send so we're
-// exposing this as Send for the moment
-
-#[cfg(feature = "unstable_async_trait")]
-impl !Send for UsbDevice {}
-#[cfg(feature = "unstable_async_trait")]
-impl !Sync for UsbDevice {}
-
-#[cfg(feature = "unstable_async_trait")]
-impl !Send for UsbTransport {}
-#[cfg(feature = "unstable_async_trait")]
-impl !Sync for UsbTransport {}
-
-/// WARNING: THIS IS A LIE TO APPEASE `async_trait`
-#[cfg(not(feature = "unstable_async_trait"))]
-unsafe impl Send for UsbTransport {}
-
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 impl Transport for UsbTransport {
     type Filters = ();
     type Info = UsbInfo;
@@ -114,9 +145,9 @@ impl Transport for UsbTransport {
         let devices: Vec<_> = self
             .hid_api
             .device_list()
-            .filter(|d| d.vendor_id() == LEDGER_VID)
+            .filter(|d| d.vendor_id() == LEDGER_VID && is_apdu_interface(d))
             .map(|d| LedgerInfo {
-                model: Model::from_pid(d.product_id()),
+                model: Model::from_usb_pid(d.product_id()),
                 conn: UsbInfo {
                     vid: d.vendor_id(),
                     pid: d.product_id(),
@@ -148,7 +179,11 @@ impl Transport for UsbTransport {
         match d {
             Ok(d) => {
                 debug!("Connected to USB device: {:?}", info);
-                Ok(UsbDevice { device: d, info })
+                Ok(UsbDevice {
+                    device: d,
+                    info,
+                    _phantom: PhantomData,
+                })
             }
             Err(e) => {
                 debug!("Failed to connect to USB device: {:?}", e);
@@ -161,7 +196,7 @@ impl Transport for UsbTransport {
 // HID packet length (header + data)
 const HID_PACKET_LEN: usize = 64;
 
-// Five bytes: channnel (0x101), tag (0x05), sequence index
+// Five bytes: channel (0x101), tag (0x05), sequence index
 const HID_HEADER_LEN: usize = 5;
 
 impl UsbDevice {
@@ -186,7 +221,7 @@ impl UsbDevice {
             // Zero prefix for unknown reasons
             packet.push(0x00);
 
-            // Header channnel (0x101), tag (0x05), sequence index
+            // Header channel (0x101), tag (0x05), sequence index
             packet.extend_from_slice(&[0x01, 0x01, 0x05]);
             packet.extend_from_slice(&(i as u16).to_be_bytes());
             // Remaining data
@@ -289,9 +324,8 @@ impl UsbDevice {
     }
 }
 
-/// [Exchange] impl for sending APDUs to a [UsbDevice]
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
-impl Exchange for UsbDevice {
+/// [NonSendExchange] impl for sending APDUs to a [UsbDevice]
+impl NonSendExchange for UsbDevice {
     async fn exchange(&mut self, command: &[u8], timeout: Duration) -> Result<Vec<u8>, Error> {
         // Write APDU command, chunked for HID transport
         self.write(command)?;

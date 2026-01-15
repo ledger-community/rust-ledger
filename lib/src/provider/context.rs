@@ -11,7 +11,7 @@ use crate::{
     error::Error,
     provider::{LedgerReq, LedgerResp, ReqChannel},
     transport::{GenericDevice, GenericTransport, Transport},
-    Exchange,
+    NonSendExchange,
 };
 
 /// Context for provider task
@@ -89,7 +89,7 @@ impl ProviderImpl {
             Ok(v) => v,
             Err(e) => {
                 error!("Failed to create transport: {}", e);
-                return Err(Error::Unknown);
+                return Err(e);
             }
         };
 
@@ -183,12 +183,12 @@ impl ProviderImpl {
                     Some(d) => d,
                     None => {
                         error!("Attempted to send APDU to unknown device handle: {}", index);
-                        return Some(LedgerResp::Error(Error::Unknown));
+                        return Some(LedgerResp::Error(Error::ApduSentToUnknownDeviceHandle));
                     }
                 };
 
                 // Issue APDU request to device and return response
-                match Exchange::exchange(d, apdu, *timeout).await {
+                match NonSendExchange::exchange(d, apdu, *timeout).await {
                     Ok(r) => LedgerResp::Resp(r),
                     Err(e) => LedgerResp::Error(e),
                 }

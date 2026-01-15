@@ -12,10 +12,8 @@ use tracing::{debug, error};
 
 use crate::{
     info::{LedgerInfo, Model},
-    Error,
+    Error, Exchange, Transport,
 };
-
-use super::{Exchange, Transport};
 
 /// TCP transport implementation for interacting with Speculos via the TCP APDU socket
 #[derive(Default)]
@@ -54,7 +52,6 @@ impl TcpTransport {
     }
 }
 
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 impl Transport for TcpTransport {
     type Filters = ();
     type Info = TcpInfo;
@@ -78,7 +75,7 @@ impl Transport for TcpTransport {
             Err(_) => {
                 devices.push(LedgerInfo {
                     conn: TcpInfo { addr }.into(),
-                    model: Model::Unknown(0),
+                    model: Model::Unknown { usb_pid: None },
                 });
             }
         }
@@ -160,7 +157,6 @@ impl TcpDevice {
 }
 
 /// [Exchange] implementation for the TCP transport
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 impl Exchange for TcpDevice {
     async fn exchange(&mut self, req: &[u8], timeout: Duration) -> Result<Vec<u8>, Error> {
         // Write APDU request

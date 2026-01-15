@@ -2,6 +2,7 @@
 
 use std::time::Duration;
 
+use async_trait::async_trait;
 use encdec::{EncDec, Encode};
 use tracing::{debug, error};
 
@@ -20,10 +21,19 @@ use crate::{
 
 const APDU_BUFF_LEN: usize = 256;
 
-/// [Device] provides a high-level interface exchanging APDU objects with implementers of [Exchange]
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
+// Note: replacing the `async_trait` macro below with the "modern" syntax, i.e.
+//  fn foo(...) -> impl Future<Output = ...> + Send {
+//      async move { ... }
+//  }
+// results in a bunch of errors "lifetime bound not satisfied ... note: this is a known limitation
+// that will be removed in the future (see issue #100013 for more information)".
+// This happens with Rust 1.91 and below, while 1.92 is able to compile the code.
+// So, `async_trait` serves as a workaround for this issue.
+
+/// [Device] provides a high-level interface exchanging APDU objects with implementers of [Exchange].
+#[async_trait]
 pub trait Device {
-    /// Issue a request APDU, returning a reponse APDU
+    /// Issue a request APDU, returning a response APDU
     async fn request<'a, 'b, RESP: EncDec<'b, ApduError>>(
         &mut self,
         request: impl ApduReq<'a> + Send,
@@ -107,7 +117,7 @@ pub trait Device {
 }
 
 /// Generic [Device] implementation for types supporting [Exchange]
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
+#[async_trait]
 impl<T: Exchange + Send> Device for T {
     /// Issue a request APDU to a device, encoding and decoding internally then returning a response APDU
     async fn request<'a, 'b, RESP: EncDec<'b, ApduError>>(

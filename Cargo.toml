@@ -8,6 +8,10 @@ members = [
     "cli",
 ]
 
+[workspace.package]
+# 1.85+ is needed for its support of the 2024 edition, which is in turn needed by bluez-async-0.8.2
+rust-version = "1.85"
+
 [patch.crates-io]
 ledger-proto = { path = "proto" }
 ledger-lib = { path = "lib" }

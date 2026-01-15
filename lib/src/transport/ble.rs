@@ -4,19 +4,17 @@ use std::{fmt::Display, pin::Pin, time::Duration};
 
 use btleplug::{
     api::{
-        BDAddr, Central as _, Characteristic, Manager as _, Peripheral, ScanFilter,
-        ValueNotification, WriteType,
+        BDAddr, Central as _, Characteristic, Manager as _, Peripheral, ValueNotification,
+        WriteType,
     },
     platform::Manager,
 };
 use futures::{stream::StreamExt, Stream};
 use tracing::{debug, error, trace, warn};
-use uuid::{uuid, Uuid};
 
-use super::{Exchange, Transport};
 use crate::{
-    info::{ConnInfo, LedgerInfo, Model},
-    Error,
+    info::{ble_spec_by_service_uuid, model_by_ble_service_uuid, ConnInfo, LedgerInfo},
+    Error, Exchange, Transport,
 };
 
 /// Transport for listing and connecting to BLE connected Ledger devices
@@ -47,35 +45,6 @@ pub struct BleDevice {
     c_read: Characteristic,
 }
 
-/// Bluetooth spec for ledger devices
-/// see: https://github.com/LedgerHQ/ledger-live/blob/develop/libs/ledgerjs/packages/devices/src/index.ts#L32
-#[derive(Clone, PartialEq, Debug)]
-struct BleSpec {
-    pub model: Model,
-    pub service_uuid: Uuid,
-    pub notify_uuid: Uuid,
-    pub write_uuid: Uuid,
-    pub write_cmd_uuid: Uuid,
-}
-
-/// Spec for types of bluetooth device
-const BLE_SPECS: &[BleSpec] = &[
-    BleSpec {
-        model: Model::NanoX,
-        service_uuid: uuid!("13d63400-2c97-0004-0000-4c6564676572"),
-        notify_uuid: uuid!("13d63400-2c97-0004-0001-4c6564676572"),
-        write_uuid: uuid!("13d63400-2c97-0004-0002-4c6564676572"),
-        write_cmd_uuid: uuid!("13d63400-2c97-0004-0003-4c6564676572"),
-    },
-    BleSpec {
-        model: Model::Stax,
-        service_uuid: uuid!("13d63400-2c97-6004-0000-4c6564676572"),
-        notify_uuid: uuid!("13d63400-2c97-6004-0001-4c6564676572"),
-        write_uuid: uuid!("13d63400-2c97-6004-0002-4c6564676572"),
-        write_cmd_uuid: uuid!("13d63400-2c97-6004-0003-4c6564676572"),
-    },
-];
-
 impl BleTransport {
     pub async fn new() -> Result<Self, Error> {
         // Setup connection manager
@@ -97,16 +66,16 @@ impl BleTransport {
         // Grab adapter list
         let adapters = self.manager.adapters().await?;
 
-        // TODO: load filters?
-        let f = ScanFilter { services: vec![] };
-
         // Search using adapters
         for adapter in adapters.iter() {
             let info = adapter.adapter_info().await?;
             debug!("Scan with adapter {info}");
 
-            // Start scan with adaptor
-            adapter.start_scan(f.clone()).await?;
+            // Start scan with adaptor.
+            // Note: filtering by service uuids at this level works fine on Linux, but doesn't work
+            // on Windows for some reason (an empty peripherals list is returned).
+            // So we pass an empty filter and do the actual filtering manually later.
+            adapter.start_scan(Default::default()).await?;
 
             tokio::time::sleep(duration).await;
 
@@ -131,29 +100,22 @@ impl BleTransport {
                     }
                 };
 
-                // Skip peripherals without a local name (NanoX should report this)
-                let name = match &properties.local_name {
-                    Some(v) => v,
-                    None => continue,
-                };
-
                 debug!("Peripheral: {p:?} props: {properties:?}");
 
-                // Match on peripheral names
-                let model = if name.contains("Nano X") {
-                    Model::NanoX
-                } else if name.contains("Stax") {
-                    Model::Stax
-                } else {
+                let Some(model) = properties
+                    .services
+                    .iter()
+                    .find_map(model_by_ble_service_uuid)
+                else {
                     continue;
                 };
 
                 // Add to device list
                 matched.push((
                     LedgerInfo {
-                        model: model.clone(),
+                        model,
                         conn: BleInfo {
-                            name: name.clone(),
+                            name: properties.local_name.unwrap_or(String::new()),
                             addr: properties.address,
                         }
                         .into(),
@@ -168,7 +130,6 @@ impl BleTransport {
 }
 
 /// [Transport] implementation for [BleTransport]
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 impl Transport for BleTransport {
     type Filters = ();
     type Info = BleInfo;
@@ -212,32 +173,33 @@ impl Transport for BleTransport {
         let name = &i.name;
 
         // Fetch properties
-        let properties = p.properties().await?;
+        let properties = p
+            .properties()
+            .await?
+            .ok_or(Error::CannotReadBleDeviceProperties)?;
+
+        debug!("peripheral {name}: {p:?} properties: {properties:?}");
 
         // Connect to device and subscribe to characteristics
-        // Fetch specs for matched model (contains characteristic identifiers)
-        let specs = match BLE_SPECS.iter().find(|s| s.model == d.model) {
-            Some(v) => v,
-            None => {
-                warn!("No specs for model: {:?}", d.model);
-                return Err(Error::Unknown);
-            }
-        };
+        // Fetch specs for matched uuid (contains characteristic identifiers)
+        let specs = properties
+            .services
+            .iter()
+            .find_map(ble_spec_by_service_uuid)
+            .ok_or(Error::CannotFindBleDeviceSpecs)?;
 
         // If we're not connected, attempt to connect
         if !p.is_connected().await? {
             if let Err(e) = p.connect().await {
                 warn!("Failed to connect to {name}: {e:?}");
-                return Err(Error::Unknown);
+                return Err(Error::Ble(e));
             }
 
             if !p.is_connected().await? {
                 warn!("Not connected to {name}");
-                return Err(Error::Unknown);
+                return Err(Error::NotConnectedAfterSuccessfulBleConnect);
             }
         }
-
-        debug!("peripheral {name}: {p:?} properties: {properties:?}");
 
         // Then, grab available services and locate characteristics
         p.discover_services().await?;
@@ -253,7 +215,7 @@ impl Transport for BleTransport {
             (Some(w), Some(r)) => (w, r),
             _ => {
                 error!("Failed to match read and write characteristics for {name}");
-                return Err(Error::Unknown);
+                return Err(Error::MissingReadOrWriteBleCharacteristics);
             }
         };
 
@@ -392,11 +354,11 @@ impl BleDevice {
             }
             Some(r) => {
                 warn!("Unexpected MTU response: {r:02x?}");
-                return Err(Error::Unknown);
+                return Err(Error::UnexpectedMtuResponse);
             }
             None => {
                 warn!("Failed to request MTU");
-                return Err(Error::Unknown);
+                return Err(Error::Closed);
             }
         };
 
@@ -413,7 +375,6 @@ impl BleDevice {
 }
 
 /// [Exchange] impl for BLE backed devices
-#[cfg_attr(not(feature = "unstable_async_trait"), async_trait::async_trait)]
 impl Exchange for BleDevice {
     async fn exchange(&mut self, command: &[u8], timeout: Duration) -> Result<Vec<u8>, Error> {
         // Fetch notification channel for responses

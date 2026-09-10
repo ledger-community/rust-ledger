@@ -158,9 +158,12 @@ impl<T: Exchange + Send> Device for T {
         }
 
         // Decode response data - status bytes
+        // NOTE: the `comm.tx`` vs. `comm.tx_length` distinction in io_legacy can
+        // result in some unexpected behaviour when trying to send status bytes.
+        // see: https://github.com/LedgerHQ/ledger-device-rust-sdk/issues/431
         let (resp, _) = RESP::decode(&buff[..n - 2])?;
 
-        debug!("RX: {resp:?}");
+        debug!("RX: {resp:02x?}");
 
         // Return decode response
         Ok(resp)

@@ -5,7 +5,7 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::LocalSet,
 };
-use tracing::{debug, error, warn};
+use tracing::{debug, error, trace, warn};
 
 use crate::{
     error::Error,
@@ -107,10 +107,10 @@ impl ProviderImpl {
 
         // Poll on incoming requests
         while let Some((req, tx)) = self.req_rx.recv().await {
-            debug!("LedgerProvider request: {:02x?}", req);
+            trace!("LedgerProvider request: {:02x?}", req);
 
             if let Some(resp) = self.handle_req(&req).await {
-                debug!("LedgerProvider response: {:02x?}", resp);
+                trace!("LedgerProvider response: {:02x?}", resp);
 
                 if let Err(e) = tx.send(resp) {
                     error!("Failed to forward response: {}", e);

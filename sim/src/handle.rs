@@ -1,9 +1,9 @@
 //! Speculos runtime handle, provides out-of-band interaction with a simulator instance
-//! via the [HTTP API](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/LedgerHQ/speculos/master/speculos/api/static/swagger/swagger.json) to allow button pushes and screenshots when executing integration tests.
-//!
-//!
+//! via the [HTTP API](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/LedgerHQ/speculos/master/speculos/api/static/swagger/swagger.json)
+//! to allow button pushes, touch input, screenshots and display event observation
+//! when executing integration tests.
 
-use std::{io::Cursor, net::SocketAddr};
+use std::{io::Cursor, net::SocketAddr, time::Duration};
 
 use async_trait::async_trait;
 use image::{DynamicImage, ImageReader};
@@ -12,7 +12,13 @@ use serde::{Deserialize, Serialize};
 use strum::Display;
 use tracing::debug;
 
-use crate::GenericHandle;
+use crate::{
+    event::{Event, EventFilter, EventsResp},
+    GenericHandle,
+};
+
+/// Interval between `/events` polls when awaiting an event
+const DEFAULT_POLL_INTERVAL: Duration = Duration::from_millis(100);
 
 /// Button enumeration
 #[derive(Clone, Copy, PartialEq, Debug, Display)]
@@ -74,6 +80,92 @@ pub trait Handle {
             .decode()?;
 
         Ok(i)
+    }
+
+    /// Fetch display events from the simulator.
+    ///
+    /// With [`EventFilter::None`] this returns every event since the last
+    /// [`clear_events`][Handle::clear_events], with [`EventFilter::CurrentScreen`]
+    /// only those belonging to the screen currently displayed.
+    async fn events(&self, filter: EventFilter) -> anyhow::Result<Vec<Event>> {
+        debug!("Fetching events ({:?})", filter);
+
+        // Fetch events from HTTP API
+        let r = reqwest::get(format!("http://{}/events{}", self.addr(), filter.query())).await?;
+
+        // Parse event list
+        let e = r.json::<EventsResp>().await?;
+
+        debug!("Received {} events", e.events.len());
+
+        Ok(e.events)
+    }
+
+    /// Clear the accumulated event list.
+    ///
+    /// Note this only resets the list returned by [`EventFilter::None`], the current
+    /// screen contents are unaffected.
+    async fn clear_events(&self) -> anyhow::Result<()> {
+        debug!("Clearing events");
+
+        // Delete events via HTTP API
+        let r = Client::new()
+            .delete(format!("http://{}/events", self.addr()))
+            .send()
+            .await?;
+
+        debug!("Clear events complete: {}", r.status());
+
+        Ok(())
+    }
+
+    /// Await an event matching the provided filter, polling until `timeout` elapses.
+    ///
+    /// [`EventFilter::None`] is the appropriate choice for most waits as the event
+    /// list accumulates, so a screen that comes and goes between polls is still
+    /// matched. [`EventFilter::CurrentScreen`] can miss such transient screens.
+    ///
+    /// ```no_run
+    /// # use std::time::Duration;
+    /// # use ledger_sim::{Handle, EventFilter};
+    /// # async fn example(handle: impl Handle + Sync) -> anyhow::Result<()> {
+    /// let e = handle
+    ///     .wait_event(EventFilter::None, Duration::from_secs(5), &|e| e.text == "Ready")
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    async fn wait_event(
+        &self,
+        filter: EventFilter,
+        timeout: Duration,
+        f: &(dyn for<'a> Fn(&'a Event) -> bool + Send + Sync),
+    ) -> anyhow::Result<Event> {
+        let poll = async {
+            loop {
+                // Fetch the current event list
+                let events = self.events(filter).await?;
+
+                // Return the first matching event if available
+                if let Some(e) = events.into_iter().find(|e| f(e)) {
+                    return Ok(e);
+                }
+
+                // Otherwise wait and retry
+                tokio::time::sleep(DEFAULT_POLL_INTERVAL).await;
+            }
+        };
+
+        match tokio::time::timeout(timeout, poll).await {
+            Ok(v) => v,
+            Err(_) => Err(anyhow::anyhow!("timeout awaiting event")),
+        }
+    }
+
+    /// Await an event containing the provided text, see [`wait_event`][Handle::wait_event]
+    async fn wait_text(&self, text: &str, timeout: Duration) -> anyhow::Result<Event> {
+        self.wait_event(EventFilter::None, timeout, &|e| e.text.contains(text))
+            .await
     }
 }
 

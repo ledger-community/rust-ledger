@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ConnInfo","ConnType","Model"],"fn":["ble_spec_by_service_uuid","model_by_ble_service_uuid"],"struct":["AppInfo","BleSpec","DeviceInfo","LedgerInfo"]};

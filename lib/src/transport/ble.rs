@@ -100,7 +100,7 @@ impl BleTransport {
                     }
                 };
 
-                debug!("Peripheral: {p:?} props: {properties:?}");
+                trace!("Peripheral: {p:?} props: {properties:?}");
 
                 let Some(model) = properties
                     .services

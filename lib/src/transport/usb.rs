@@ -257,7 +257,9 @@ impl UsbDevice {
 
         // Check read length is valid for following operations
         if n == 0 {
-            error!("Empty response");
+            // NOTE: this can happen when interacting with the new touch devices in
+            // situations that are not -strictly- errors.
+            debug!("Empty response");
             return Err(Error::EmptyResponse);
         } else if n < 7 {
             error!("Unexpected read length {n}");

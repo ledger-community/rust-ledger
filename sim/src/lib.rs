@@ -9,7 +9,8 @@
 //!
 //! ``` no_run
 //! # use tracing::{debug};
-//! use ledger_sim::{GenericDriver, DriverMode, Driver, Model, Options};
+//! # use std::time::Duration;
+//! use ledger_sim::{GenericDriver, DriverMode, Driver, Model, Options, Handle, Button, Action};
 //! use ledger_lib::{Device, transport::{Transport, TcpTransport, TcpInfo}, DEFAULT_TIMEOUT};
 //! use ledger_proto::apdus::{AppInfoReq, AppInfoResp};
 //!
@@ -33,6 +34,11 @@
 //!     // Fetch app info via transport
 //!     let mut buff = [0u8; 256];
 //!     let info = device.request::<AppInfoResp>(AppInfoReq{}, &mut buff, DEFAULT_TIMEOUT).await?;
+//!
+//!     // Drive the UI, awaiting the expected screen rather than sleeping
+//!     handle.clear_events().await?;
+//!     handle.button(Button::Both, Action::PressAndRelease).await?;
+//!     handle.wait_text("Ready", Duration::from_secs(5)).await?;
 //!
 //!     // Await simulator exit or exit signal
 //!     tokio::select!(
@@ -62,6 +68,9 @@ pub use drivers::*;
 
 mod handle;
 pub use handle::*;
+
+mod event;
+pub use event::{Event, EventFilter};
 
 /// Device model
 #[derive(Copy, Clone, PartialEq, Debug, VariantNames, Display, EnumString)]

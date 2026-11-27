@@ -1,11 +1,13 @@
 [package]
 name = "ledger-lib"
 description = "Communication library for Ledger hardware wallets"
-repository = "https://github.com/ledger-community/rust-ledger.git"
 keywords = [ "ledger", "wallet", "usb", "hid", "bluetooth" ]
-version = "0.1.0"
-edition = "2021"
-license = "Apache-2.0"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme.workspace = true
 rust-version.workspace = true
 
 [features]
@@ -24,22 +26,22 @@ clap = [ "dep:clap" ]
 default = [ "transport_usb", "transport_tcp", "transport_ble", "transport_usb_libusb" ]
 
 [dependencies]
-async-trait = "0.1"
+async-trait = { workspace = true }
 btleplug = { version = "0.13", optional = true }
-clap = { version = "4.2", optional = true }
-displaydoc = "0.2"
-encdec = "0.10"
-futures = "0.3"
+clap = { workspace = true, optional = true }
+displaydoc = { workspace = true, default-features = true }
+encdec = { workspace = true, default-features = true }
+futures = { workspace = true }
 hidapi = { version = "2.6", optional = true, default-features = false }
-lazy_static = "1.5"
-ledger-proto = { version = "0.1", default-features = false, features = [ "std" ] }
+lazy_static = { workspace = true }
+ledger-proto = { workspace = true, features = [ "std" ] }
 once_cell = "1.17"
-strum = { version = "0.26", features = ["derive"] }
-thiserror = "2.0"
-tokio = { version = "1.53", features = ["full"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+strum = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 uuid = "1.26"
 
 [dev-dependencies]
-anyhow = "1.0"
+anyhow = { workspace = true }

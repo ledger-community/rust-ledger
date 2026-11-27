@@ -1,31 +1,33 @@
 [package]
 name = "ledger-sim"
 description = "A Rust wrapper for the Ledger Speculos Simulator"
-repository = "https://github.com/ledger-community/rust-ledger.git"
 keywords = [ "ledger", "hardware", "wallet", "speculos", "simulator" ]
-version = "0.1.0"
-edition = "2021"
-license = "Apache-2.0"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme.workspace = true
 rust-version.workspace = true
 
 [dependencies]
 bytes = "1.2"
-strum = { version = "0.26", features = [ "derive" ] }
-anyhow = "1.0"
-clap = { version = "4.3", features = [ "derive", "env" ] }
-tokio = { version = "1.53", features = [ "full" ] }
-lazy_static = "1.4"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+strum = { workspace = true, features = [ "derive" ] }
+anyhow = { workspace = true }
+clap = { workspace = true, features = [ "derive", "env" ] }
+tokio = { workspace = true, features = [ "full" ] }
+lazy_static = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 bollard = "0.19.4"
-async-trait = "0.1"
-futures = "0.3"
+async-trait = { workspace = true }
+futures = { workspace = true }
 tar = "0.4"
 reqwest = { version = "0.11", features = [ "json", "rustls-tls" ], default-features = false }
-serde = "1.0"
-serde_json = "1.0"
+serde = { workspace = true }
+serde_json = { workspace = true }
 image = "0.25"
 
 [dev-dependencies]
-ledger-lib = "0.1"
-ledger-proto = "0.1"
+ledger-lib = { workspace = true, default-features = true }
+ledger-proto = { workspace = true, default-features = true }

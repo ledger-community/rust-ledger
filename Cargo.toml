@@ -9,10 +9,34 @@ members = [
 ]
 
 [workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/ledger-community/rust-ledger.git"
+authors = ["ryan kurte <ryan@kurte.nz>"]
+readme = "README.md"
 # 1.85+ is needed for its support of the 2024 edition, which is in turn needed by btleplug-0.13 (and bluez-async-0.8.2)
 rust-version = "1.85"
 
-[patch.crates-io]
-ledger-proto = { path = "proto" }
-ledger-lib = { path = "lib" }
-ledger-sim = { path = "sim" }
+[workspace.dependencies]
+# Internal crates
+ledger-proto = { path = "proto", version = "0.1", default-features = false }
+ledger-lib = { path = "lib", version = "0.1", default-features = false }
+ledger-sim = { path = "sim", version = "0.1" }
+
+# Shared external dependencies
+anyhow = "1.0"
+async-trait = "0.1"
+clap = "4.3"
+displaydoc = { version = "0.2", default-features = false }
+encdec = { version = "0.10", default-features = false }
+futures = "0.3"
+hex = "0.4"
+lazy_static = "1.5"
+serde = "1.0"
+serde_json = "1.0"
+strum = "0.26"
+thiserror = "2.0"
+tokio = "1.53"
+tracing = "0.1"
+tracing-subscriber = "0.3"

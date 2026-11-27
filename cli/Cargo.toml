@@ -1,11 +1,13 @@
 [package]
 name = "ledger-cli"
 description = "Ledger hardware wallet command line interface"
-repository = "https://github.com/ledger-community/rust-ledger.git"
 keywords = [ "ledger", "wallet", "cli" ]
-version = "0.1.0"
-edition = "2021"
-license = "Apache-2.0"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme.workspace = true
 rust-version.workspace = true
 
 [features]
@@ -16,15 +18,15 @@ transport_usb_hidraw = [ "ledger-lib/transport_usb_hidraw" ]
 default = [ "transport_usb_libusb" ]
 
 [dependencies]
-clap = { version = "4.2", features = [ "derive" ] }
-anyhow = "1.0"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tokio = { version = "1.53", features = ["full"] }
+clap = { workspace = true, features = [ "derive" ] }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tokio = { workspace = true, features = ["full"] }
 time = { version = "0.3", features = [ "macros" ] }
 humantime = "2.1"
-hex = "0.4"
-serde_json = "1.0"
+hex = { workspace = true }
+serde_json = { workspace = true }
 
-ledger-lib = { version =  "0.1", default-features = false, features = [ "clap", "transport_usb", "transport_tcp", "transport_ble" ] }
-ledger-proto = { version = "0.1" }
+ledger-lib = { workspace = true, features = [ "clap", "transport_usb", "transport_tcp", "transport_ble" ] }
+ledger-proto = { workspace = true, default-features = true }
